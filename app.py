@@ -5,7 +5,7 @@ import requests
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 
-# ultima actualización: 2025 - 06 - 22 - 18 hs
+# ultima actualización: 2025 - 06 - 25 - 18 hs
 # ----------------------------- UTILIDADES -----------------------------
 def obtener_titulo_youtube(url):
     try:
