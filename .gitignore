@@ -1,0 +1,22 @@
+# Entornos virtuales
+playlistcsv-env/
+env/
+venv/
+*.env
+*.venv
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Cachés de Python
+__pycache__/
+*.py[cod]
+
+# Logs y bases de datos
+*.log
+*.sqlite3
+
+# Archivos de configuración de IDEs
+.vscode/
+.idea/
