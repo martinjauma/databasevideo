@@ -20,3 +20,4 @@ __pycache__/
 # Archivos de configuración de IDEs
 .vscode/
 .idea/
+.DS_Store
