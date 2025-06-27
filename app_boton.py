@@ -6,25 +6,6 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 
 # ultima actualización: 2025 - 06 - 25 - 18 hs
-
-# Ocultar menú, footer, botón fork, logo Streamlit y avatar
-hide_all_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    /* Oculta el badge Powered by Streamlit */
-    [data-testid="stDecoration"] {display:none !important;}
-    /* Oculta el botón de fork */
-    [data-testid="stAppViewContainer"] > header {display: none !important;}
-    /* Oculta avatar de GitHub abajo a la derecha */
-    .stDeployButton {display:none !important;}
-    </style>
-"""
-st.markdown(hide_all_style, unsafe_allow_html=True)  
-
-
-
 # ----------------------------- UTILIDADES -----------------------------
 def obtener_titulo_youtube(url):
     try:
@@ -64,12 +45,7 @@ def main():
     video_title = obtener_titulo_youtube(youtube_url) if video_id else None
 
     if video_id and video_title:
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            st.success(f"🎞️ Video seleccionado: **{video_title}**")
-        with col2:
-            st.info(f"🆔 `{video_id}`")
-
+        st.markdown(f"### 🎞️ Video seleccionado: **{video_title}**")
     elif youtube_url.strip():
         st.warning("⚠️ URL inválida")
 
@@ -100,11 +76,7 @@ def main():
             df_filtrado = df_filtrado[df_filtrado["row name"].isin(rowname_sel)]
         
         # ----------------- AgGrid Editable -----------------
-        st.markdown("---")
-        st.subheader("🧮 Tabla de Clips Seleccionados")
-        st.caption("✏️ Editá la duración y seleccioná los clips que quieras reproducir.")
-        st.markdown("---")
-
+        st.markdown("### 🧮 Tabla de Clips")
         # Configurar AgGrid
         gb = GridOptionsBuilder.from_dataframe(df_filtrado)
         gb.configure_default_column(editable=False, resizable=True)
