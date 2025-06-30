@@ -67,9 +67,30 @@ def main():
 
     uploaded_file = st.sidebar.file_uploader("📄 Cargar CSV", type=["csv"])
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        df.columns = [col.lower() for col in df.columns]
+        try:
+            # intenta detectar el separador automáticamente
+            df = pd.read_csv(uploaded_file, sep=None, engine="python")
+        except Exception as e:
+            st.sidebar.error(f"❌ Error al leer CSV: {e}")
+            return
+        
+        # estandarizar nombres de columnas
+        df.columns = [col.lower().strip() for col in df.columns]
+        
+        # renombrar para compatibilidad
+        rename_dict = {
+            "name": "row name",
+            "start": "clip start"
+        }
+        df.rename(columns=rename_dict, inplace=True)
+        
+        # verificar si está la columna equipo
+        if "equipo" not in df.columns:
+            st.sidebar.error("❌ Falta la columna 'equipo' en el CSV")
+            return
+        
         st.session_state.df = df
+
 
     if st.session_state.df is not None:
         df = st.session_state.df.copy()
