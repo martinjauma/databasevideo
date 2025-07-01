@@ -28,7 +28,7 @@ def main():
     st.set_page_config(page_title="Rugby Clip Viewer", layout="wide")
     st.title("🏉 Reproductor Inteligente de Clips")
 
-    # --------------- SESSION STATE inicialización ---------------
+    # Inicializar variables en session_state
     if "youtube_url" not in st.session_state:
         st.session_state.youtube_url = "https://www.youtube.com/watch?v=XNaqqZNJUMc"
     if "df" not in st.session_state:
@@ -41,8 +41,10 @@ def main():
         st.session_state.playlist_index = 0
     if "playlist_active" not in st.session_state:
         st.session_state.playlist_active = False
+    if "tabla_expanded" not in st.session_state:
+        st.session_state.tabla_expanded = True  # Tabla visible por defecto
 
-    # --------------- SIDEBAR ---------------
+    # SIDEBAR
     st.sidebar.header("🎛️ Controles")
     st.session_state.youtube_url = st.sidebar.text_input(
         "🔗 URL de YouTube",
@@ -73,7 +75,7 @@ def main():
                 st.sidebar.error(f"❌ Falta la columna: {col}")
                 return
 
-        # asegurarse que sean float
+        # Asegurar tipos float y calcular duración
         df["Clip Start"] = df["Clip Start"].astype(float)
         df["Clip End"] = df["Clip End"].astype(float)
         df["duracion"] = df["Clip End"] - df["Clip Start"]
@@ -85,7 +87,7 @@ def main():
     if st.session_state.df is not None:
         df = st.session_state.df.copy()
 
-        # --------------- FILTROS ---------------
+        # FILTROS
         st.session_state.equipo_sel = st.sidebar.multiselect(
             "Equipo",
             options=df["EQUIPO"].unique(),
@@ -106,38 +108,39 @@ def main():
             if col not in df_filtrado.columns:
                 df_filtrado[col] = "Sin dato"
 
-        # mostramos Clip Start y duracion con 1 decimal
+        # Mostrar Clip Start y duracion con 0 decimales (enteros)
         df_filtrado["Clip Start"] = df_filtrado["Clip Start"].round(0)
         df_filtrado["duracion"] = df_filtrado["duracion"].round(0)
 
         df_filtrado = df_filtrado[columnas_visibles + ["Clip Start", "duracion", "video_id"]]
 
-        # --------------- AgGrid ---------------
-        st.markdown("### 🧮 Tabla de Clips")
-        gb = GridOptionsBuilder.from_dataframe(df_filtrado)
-        gb.configure_default_column(editable=False, resizable=True)
-        gb.configure_column("duracion", editable=True)
-        gb.configure_selection("multiple", use_checkbox=True)
-        grid_options = gb.build()
+        # TABLA EN EXPANDER
+        with st.expander("🧮 Tabla de Clips", expanded=st.session_state.tabla_expanded):
+            gb = GridOptionsBuilder.from_dataframe(df_filtrado)
+            gb.configure_default_column(editable=False, resizable=True)
+            gb.configure_column("duracion", editable=True)
+            gb.configure_selection("multiple", use_checkbox=True)
+            grid_options = gb.build()
 
-        grid_response = AgGrid(
-            df_filtrado,
-            gridOptions=grid_options,
-            update_mode=GridUpdateMode.MODEL_CHANGED,
-            theme="streamlit",
-            height=400,
-            allow_unsafe_jscode=True
-        )
+            grid_response = AgGrid(
+                df_filtrado,
+                gridOptions=grid_options,
+                update_mode=GridUpdateMode.MODEL_CHANGED,
+                theme="streamlit",
+                height=400,
+                allow_unsafe_jscode=True
+            )
 
         updated_df = grid_response["data"]
         selected_rows = grid_response.get("selected_rows", [])
 
-        # --------------- CONTROLES PLAYLIST ---------------
+        # CONTROLES PLAYLIST
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             if st.button("▶️ Play Playlist"):
                 st.session_state.playlist_index = 0
                 st.session_state.playlist_active = True
+                st.session_state.tabla_expanded = False  # Colapsar tabla al empezar
                 st.rerun()
         with col2:
             if st.button("⏮️ Anterior"):
@@ -150,8 +153,10 @@ def main():
         with col4:
             if st.button("⏹️ Detener"):
                 st.session_state.playlist_active = False
+                st.session_state.tabla_expanded = True  # Expandir tabla al detener
+                st.rerun()
 
-        # --------------- PLAYLIST AUTOMÁTICO ---------------
+        # PLAYLIST AUTOMÁTICO
         if st.session_state.playlist_active:
             clips = pd.DataFrame(selected_rows)
             if clips.empty:
@@ -162,11 +167,10 @@ def main():
 
                 df_original = st.session_state.df
                 df_match = df_original[
-                (df_original["Row Name"] == clip["Row Name"]) &
-                (df_original["EQUIPO"] == clip["EQUIPO"]) &
-                (df_original["Clip Start"].round(0).astype(int) == int(clip["Clip Start"]))
-            ]
-
+                    (df_original["Row Name"] == clip["Row Name"]) &
+                    (df_original["EQUIPO"] == clip["EQUIPO"]) &
+                    (df_original["Clip Start"].round(0) == clip["Clip Start"])
+                ]
 
                 if df_match.empty:
                     st.error("No se encontró la fila completa en el dataframe original.")
@@ -198,8 +202,9 @@ def main():
             else:
                 st.success("✅ Playlist finalizada")
                 st.session_state.playlist_active = False
+                st.session_state.tabla_expanded = True  # Expandir tabla al terminar
 
-        # --------------- VISTA INDIVIDUAL ---------------
+        # VISTA INDIVIDUAL
         elif isinstance(selected_rows, list) and len(selected_rows) > 0 and video_id:
             clip = selected_rows[0]
 
@@ -207,7 +212,7 @@ def main():
             df_match = df_original[
                 (df_original["Row Name"] == clip["Row Name"]) &
                 (df_original["EQUIPO"] == clip["EQUIPO"]) &
-                (df_original["Clip Start"].round(1) == clip["Clip Start"])
+                (df_original["Clip Start"].round(0) == clip["Clip Start"])
             ]
 
             if df_match.empty:
@@ -231,11 +236,11 @@ def main():
                     allowfullscreen></iframe>
                 """, height=500)
 
-            espera_real = max(duracion + 2, duracion)
+            espera_real = max(duracion + 4, duracion)
             time.sleep(espera_real)
             iframe_container.empty()
 
-        # --------------- EXPORTAR ---------------
+        # EXPORTAR CSV
         st.sidebar.markdown("### 📥 Exportar CSV actualizado")
         st.sidebar.download_button(
             label="💾 Descargar CSV",
