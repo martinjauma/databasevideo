@@ -23,14 +23,6 @@ def extraer_video_id(url):
     except:
         return None
 
-def reproducir_clip(video_id, start, end):
-    embed_url = f"https://www.youtube.com/embed/{video_id}?start={start}&end={end}&autoplay=1"
-    st.components.v1.html(f"""
-        <iframe width="100%" height="500" src="{embed_url}"
-        frameborder="0" allow="autoplay; encrypted-media"
-        allowfullscreen></iframe>
-    """, height=500)
-
 # -------------------- MAIN --------------------
 def main():
     st.set_page_config(page_title="Rugby Clip Viewer", layout="wide")
@@ -73,20 +65,19 @@ def main():
             st.sidebar.error(f"❌ Error al leer CSV: {e}")
             return
 
-        # limpiar espacios en encabezados
         df.columns = [col.strip() for col in df.columns]
-        
-        # verificar nombres tal cual vienen
+
         columnas_requeridas = ["Row Name", "Clip Start", "Clip End", "EQUIPO"]
         for col in columnas_requeridas:
             if col not in df.columns:
                 st.sidebar.error(f"❌ Falta la columna: {col}")
                 return
-        
-        # calcular duracion
+
+        # asegurarse que sean float
+        df["Clip Start"] = df["Clip Start"].astype(float)
+        df["Clip End"] = df["Clip End"].astype(float)
         df["duracion"] = df["Clip End"] - df["Clip Start"]
 
-        # agregar video_id
         df["video_id"] = video_id
 
         st.session_state.df = df
@@ -114,6 +105,10 @@ def main():
         for col in columnas_visibles:
             if col not in df_filtrado.columns:
                 df_filtrado[col] = "Sin dato"
+
+        # mostramos Clip Start y duracion con 1 decimal
+        df_filtrado["Clip Start"] = df_filtrado["Clip Start"].round(0)
+        df_filtrado["duracion"] = df_filtrado["duracion"].round(0)
 
         df_filtrado = df_filtrado[columnas_visibles + ["Clip Start", "duracion", "video_id"]]
 
@@ -164,13 +159,40 @@ def main():
                 st.session_state.playlist_active = False
             elif st.session_state.playlist_index < len(clips):
                 clip = clips.iloc[st.session_state.playlist_index]
+
+                df_original = st.session_state.df
+                df_match = df_original[
+                (df_original["Row Name"] == clip["Row Name"]) &
+                (df_original["EQUIPO"] == clip["EQUIPO"]) &
+                (df_original["Clip Start"].round(0).astype(int) == int(clip["Clip Start"]))
+            ]
+
+
+                if df_match.empty:
+                    st.error("No se encontró la fila completa en el dataframe original.")
+                    return
+
+                clip_row = df_match.iloc[0]
+                clip_start = clip_row["Clip Start"]
+                clip_end = clip_row["Clip End"]
+                duracion = clip_end - clip_start
+
                 st.markdown(f"### ▶️ Clip: **{clip['Row Name']}** | Equipo: **{clip['EQUIPO']}**")
-                reproducir_clip(
-                    video_id=clip["video_id"],
-                    start=int(clip["Clip Start"]),
-                    end=int(clip["Clip Start"] + clip["duracion"])
-                )
-                time.sleep(clip["duracion"])
+
+                embed_url = f"https://www.youtube.com/embed/{clip['video_id']}?start={int(clip_start)}&autoplay=1"
+
+                iframe_container = st.empty()
+                with iframe_container:
+                    st.components.v1.html(f"""
+                        <iframe width="100%" height="500" src="{embed_url}"
+                        frameborder="0" allow="autoplay; encrypted-media"
+                        allowfullscreen></iframe>
+                    """, height=500)
+
+                espera_real = max(duracion + 4, duracion)
+                time.sleep(espera_real)
+                iframe_container.empty()
+
                 st.session_state.playlist_index += 1
                 st.rerun()
             else:
@@ -180,12 +202,38 @@ def main():
         # --------------- VISTA INDIVIDUAL ---------------
         elif isinstance(selected_rows, list) and len(selected_rows) > 0 and video_id:
             clip = selected_rows[0]
+
+            df_original = st.session_state.df
+            df_match = df_original[
+                (df_original["Row Name"] == clip["Row Name"]) &
+                (df_original["EQUIPO"] == clip["EQUIPO"]) &
+                (df_original["Clip Start"].round(1) == clip["Clip Start"])
+            ]
+
+            if df_match.empty:
+                st.error("No se encontró la fila completa en el dataframe original.")
+                return
+
+            clip_row = df_match.iloc[0]
+            clip_start = clip_row["Clip Start"]
+            clip_end = clip_row["Clip End"]
+            duracion = clip_end - clip_start
+
             st.markdown(f"### ▶️ Clip manual: **{clip['Row Name']}** ({clip['EQUIPO']})")
-            reproducir_clip(
-                video_id=clip["video_id"],
-                start=int(clip["Clip Start"]),
-                end=int(clip["Clip Start"] + clip["duracion"])
-            )
+
+            embed_url = f"https://www.youtube.com/embed/{clip['video_id']}?start={int(clip_start)}&autoplay=1"
+
+            iframe_container = st.empty()
+            with iframe_container:
+                st.components.v1.html(f"""
+                    <iframe width="100%" height="500" src="{embed_url}"
+                    frameborder="0" allow="autoplay; encrypted-media"
+                    allowfullscreen></iframe>
+                """, height=500)
+
+            espera_real = max(duracion + 2, duracion)
+            time.sleep(espera_real)
+            iframe_container.empty()
 
         # --------------- EXPORTAR ---------------
         st.sidebar.markdown("### 📥 Exportar CSV actualizado")
@@ -195,7 +243,6 @@ def main():
             file_name="clips_actualizados.csv",
             mime="text/csv"
         )
-
 
 if __name__ == "__main__":
     main()
