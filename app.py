@@ -188,10 +188,47 @@ def main():
                 iframe_container = st.empty()
                 with iframe_container:
                     st.components.v1.html(f"""
-                        <iframe width="100%" height="500" src="{embed_url}"
-                        frameborder="0" allow="autoplay; encrypted-media"
-                        allowfullscreen></iframe>
+                        <style>
+                        .video-wrapper {{
+                            display: flex;
+                            justify-content: center;
+                            margin-top: 20px;
+                        }}
+                        .video-container {{
+                            position: relative;
+                            padding-bottom: 56.25%;
+                            height: 0;
+                            overflow: hidden;
+                            max-width: 900px;
+                            width: 100%;
+                        }}
+                        .video-container iframe {{
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                        }}
+                        </style>
+
+                        <div id="video-wrapper" class="video-wrapper">
+                            <div class="video-container">
+                                <iframe src="{embed_url}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                            </div>
+                        </div>
+
+                        <script>
+                        // Espera a que cargue el DOM y hace scroll hacia el div con id video-wrapper
+                        window.onload = function() {{
+                            var element = document.getElementById("video-wrapper");
+                            if(element) {{
+                                element.scrollIntoView({{behavior: "smooth", block: "center"}});
+                            }}
+                        }};
+                        </script>
                     """, height=500)
+
+
 
                 espera_real = max(duracion + 4, duracion)
                 time.sleep(espera_real)
