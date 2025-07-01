@@ -68,67 +68,54 @@ def main():
     uploaded_file = st.sidebar.file_uploader("📄 Cargar CSV", type=["csv"])
     if uploaded_file:
         try:
-            # intenta detectar el separador automáticamente
             df = pd.read_csv(uploaded_file, sep=None, engine="python")
         except Exception as e:
             st.sidebar.error(f"❌ Error al leer CSV: {e}")
             return
-        
-        # estandarizar nombres de columnas
-        df.columns = [col.lower().strip() for col in df.columns]
-        
-        # renombrar para compatibilidad
-        rename_dict = {
-            "name": "row name",
-            "start": "clip start"
-        }
-        df.rename(columns=rename_dict, inplace=True)
-        
-        # verificar si está la columna equipo
-        if "equipo" not in df.columns:
-            st.sidebar.error("❌ Falta la columna 'equipo' en el CSV")
-            return
-        
-        st.session_state.df = df
 
-
-    if st.session_state.df is not None:
-        df = st.session_state.df.copy()
-
-        columnas_requeridas = ["row name", "clip start", "equipo"]
+        # limpiar espacios en encabezados
+        df.columns = [col.strip() for col in df.columns]
+        
+        # verificar nombres tal cual vienen
+        columnas_requeridas = ["Row Name", "Clip Start", "Clip End", "EQUIPO"]
         for col in columnas_requeridas:
             if col not in df.columns:
                 st.sidebar.error(f"❌ Falta la columna: {col}")
                 return
+        
+        # calcular duracion
+        df["duracion"] = df["Clip End"] - df["Clip Start"]
 
-        if "duracion" not in df.columns:
-            df["duracion"] = 20
-        if "video_id" not in df.columns:
-            df["video_id"] = video_id
+        # agregar video_id
+        df["video_id"] = video_id
+
+        st.session_state.df = df
+
+    if st.session_state.df is not None:
+        df = st.session_state.df.copy()
 
         # --------------- FILTROS ---------------
         st.session_state.equipo_sel = st.sidebar.multiselect(
             "Equipo",
-            options=df["equipo"].unique(),
-            default=st.session_state.equipo_sel or df["equipo"].unique()
+            options=df["EQUIPO"].unique(),
+            default=st.session_state.equipo_sel or df["EQUIPO"].unique()
         )
         st.session_state.rowname_sel = st.sidebar.multiselect(
             "Eventos",
-            options=df["row name"].unique(),
+            options=df["Row Name"].unique(),
             default=st.session_state.rowname_sel
         )
 
-        df_filtrado = df[df["equipo"].isin(st.session_state.equipo_sel)]
+        df_filtrado = df[df["EQUIPO"].isin(st.session_state.equipo_sel)]
         if st.session_state.rowname_sel:
-            df_filtrado = df_filtrado[df_filtrado["row name"].isin(st.session_state.rowname_sel)]
+            df_filtrado = df_filtrado[df_filtrado["Row Name"].isin(st.session_state.rowname_sel)]
 
-        columnas_visibles = ["row name", "equipo", "resultado"]
+        columnas_visibles = ["Row Name", "EQUIPO", "RESULTADO"]
         for col in columnas_visibles:
             if col not in df_filtrado.columns:
                 df_filtrado[col] = "Sin dato"
 
-        # agregar clip start, duracion, video_id para reproducir
-        df_filtrado = df_filtrado[columnas_visibles + ["clip start", "duracion", "video_id"]]
+        df_filtrado = df_filtrado[columnas_visibles + ["Clip Start", "duracion", "video_id"]]
 
         # --------------- AgGrid ---------------
         st.markdown("### 🧮 Tabla de Clips")
@@ -177,11 +164,11 @@ def main():
                 st.session_state.playlist_active = False
             elif st.session_state.playlist_index < len(clips):
                 clip = clips.iloc[st.session_state.playlist_index]
-                st.markdown(f"### ▶️ Clip: **{clip['row name']}** | Equipo: **{clip['equipo']}**")
+                st.markdown(f"### ▶️ Clip: **{clip['Row Name']}** | Equipo: **{clip['EQUIPO']}**")
                 reproducir_clip(
                     video_id=clip["video_id"],
-                    start=int(clip["clip start"]),
-                    end=int(clip["clip start"] + clip["duracion"])
+                    start=int(clip["Clip Start"]),
+                    end=int(clip["Clip Start"] + clip["duracion"])
                 )
                 time.sleep(clip["duracion"])
                 st.session_state.playlist_index += 1
@@ -193,11 +180,11 @@ def main():
         # --------------- VISTA INDIVIDUAL ---------------
         elif isinstance(selected_rows, list) and len(selected_rows) > 0 and video_id:
             clip = selected_rows[0]
-            st.markdown(f"### ▶️ Clip manual: **{clip['row name']}** ({clip['equipo']})")
+            st.markdown(f"### ▶️ Clip manual: **{clip['Row Name']}** ({clip['EQUIPO']})")
             reproducir_clip(
                 video_id=clip["video_id"],
-                start=int(clip["clip start"]),
-                end=int(clip["clip start"] + clip["duracion"])
+                start=int(clip["Clip Start"]),
+                end=int(clip["Clip Start"] + clip["duracion"])
             )
 
         # --------------- EXPORTAR ---------------
