@@ -94,6 +94,17 @@ def render_sidebar():
             df_filtrado = df_filtrado[df_filtrado["Row Name"].isin(eventos)]
         st.session_state.df_filtrado = df_filtrado
 
+        # Guardar última selección manual sin refrescar el frame
+        if not st.session_state.get("playlist_active"):
+            if "last_selected_index" not in st.session_state:
+                st.session_state["last_selected_index"] = None
+            if not st.session_state.get("clips_seleccionados", pd.DataFrame()).empty:
+                last_index = st.session_state.clips_seleccionados.index[-1]
+                st.session_state.last_selected_index = last_index
+            else:
+                st.session_state.last_selected_index = None
+
+
 def render_aggrid(height=300):
     """Muestra la tabla de clips interactiva y maneja la selección."""
     if st.session_state.playlist_active:
@@ -223,7 +234,24 @@ def get_full_clip_details(clip_row: pd.Series) -> Optional[pd.Series]:
 
 def render_main_view():
     """Renderiza la vista principal que contiene el reproductor y la tabla."""
-    st.header("📺 Reproductor")
+
+    # Determinar si el expander debe estar expandido o no
+    expander_expanded = st.session_state.get("show_expander", True)
+
+    with st.expander("📁 Lista de Clips", expanded=expander_expanded):
+        if not st.session_state.get("playlist_active", False):
+            with st.form("clip_form"):
+                render_aggrid()
+                cols_form = st.columns([1, 4])
+                with cols_form[0]:
+                    submitted = st.form_submit_button("\u25b6\ufe0f Iniciar Playlist")
+
+                if submitted:
+                    st.session_state.playlist_active = True
+                    st.session_state.playlist_index = 0
+                    st.session_state.show_expander = False
+        else:
+            render_aggrid()
 
     # Determinar qué clip mostrar
     clip_to_show = None
@@ -236,12 +264,14 @@ def render_main_view():
             clip_to_show = get_full_clip_details(clip_info)
             autoplay = True
         else:
-            st.success("✅ Playlist finalizada o vacía.")
+            st.success("\u2705 Playlist finalizada o vacía.")
             st.session_state.playlist_active = False
     elif not clips_seleccionados.empty:
-        last_selected = clips_seleccionados.iloc[-1]
-        clip_to_show = get_full_clip_details(last_selected)
-        autoplay = False
+        last_index = st.session_state.get("last_selected_index")
+        if last_index is not None and last_index in clips_seleccionados.index:
+            clip_info = clips_seleccionados.loc[last_index]
+            clip_to_show = get_full_clip_details(clip_info)
+            autoplay = False
 
     # Renderizar el reproductor y el título si hay un clip
     if clip_to_show is not None:
@@ -252,11 +282,51 @@ def render_main_view():
         st.info("Selecciona uno o más clips de la tabla para comenzar.")
 
     st.divider()
-    render_playlist_controls()
+
+    # --- Botones de control sin Iniciar Playlist ---
+    clips = st.session_state.clips_seleccionados
+    is_playlist_empty = clips.empty
+
+    is_first_clip = st.session_state.playlist_index == 0
+    is_last_clip = st.session_state.playlist_index >= len(clips) - 1
+
+    cols = st.columns([1, 1, 1, 1.5, 2.5])
+
+    if cols[0].button("⏪ Anterior", disabled=not st.session_state.playlist_active or is_first_clip):
+        st.session_state.playlist_index -= 1
+        st.rerun()
+
+    if cols[1].button("⏩ Próximo", disabled=not st.session_state.playlist_active or is_last_clip):
+        st.session_state.playlist_index += 1
+        st.rerun()
+
+    if cols[2].button("🔝 Detener", disabled=not st.session_state.playlist_active):
+        st.session_state.playlist_active = False
+        st.session_state.show_expander = True
+        st.rerun()
+
+    csv_data = b""
+    if not is_playlist_empty:
+        full_details_list = [get_full_clip_details(row) for _, row in clips.iterrows()]
+        full_details_list = [row for row in full_details_list if row is not None]
+        if full_details_list:
+            df_to_download = pd.DataFrame(full_details_list)
+            csv_data = df_to_download.to_csv(index=False).encode('utf-8-sig')
+
+    cols[3].download_button(
+        label=" Descargar CSV",
+        data=csv_data,
+        file_name="playlist_seleccionada.csv",
+        mime="text/csv",
+        disabled=is_playlist_empty,
+        help="Descarga los clips seleccionados en formato CSV."
+    )
+
+    if st.session_state.playlist_active and not is_playlist_empty:
+        cols[4].info(f"**Clip {st.session_state.playlist_index + 1} de {len(clips)}**")
+
     st.divider()
 
-    with st.expander("📑 Lista de Clips", expanded=True):
-        render_aggrid()
 
 # --- APLICACIÓN PRINCIPAL ---
 
