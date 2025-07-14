@@ -5,6 +5,9 @@ venv/
 *.env
 *.venv
 
+# Carpeta de sistema
+ignore/
+
 # Archivos de sistema
 .DS_Store
 Thumbs.db
