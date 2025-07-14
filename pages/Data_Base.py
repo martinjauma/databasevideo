@@ -393,7 +393,7 @@ def main():
         """)
 
         sample_csv_data = '''"Row Name","Clip Start","Clip End","EQUIPO","URL"
-"Try Jugador A",10,25,"Equipo Rojo","ESTE CAMPO ES OPCIONAL"
+"Try Jugador A",10,25,"Equipo Rojo","ESTE CAMPO ES OPCIONAL!, si este campo no se rellena, se usará la URL de YouTube ingresada en la barra lateral para todos los clips."
 "Try Jugador B",30,45,"Equipo Azul","https://www.youtube.com/watch?v=XNaqqZNJUMc"
 "Falta Jugador C",70,80,"Equipo Rojo","https://www.youtube.com/watch?v=XNaqqZNJUMc"
 "Defensa Lineout",50,65,"Equipo Azul"
