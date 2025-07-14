@@ -227,13 +227,15 @@ def render_aggrid(height=300):
         # Procesar actualizaciones de la edición de celdas
         if grid_response['data'] is not None:
             df_updated_view = pd.DataFrame(grid_response['data'])
-            
-            # Restaurar el índice original para alinear los datos para las actualizaciones
-            df_updated_view.index = df_display.index
-            
-            # Actualizar los dataframes maestro y filtrado en el estado de la sesión
-            st.session_state.df_original.update(df_updated_view)
-            st.session_state.df_filtrado.update(df_updated_view)
+
+            # Para evitar errores, solo actualiza si los datos de entrada y salida coinciden en longitud
+            if len(df_updated_view) == len(df_display):
+                # Restaurar el índice original para alinear los datos para las actualizaciones
+                df_updated_view.index = df_display.index
+
+                # Actualizar los dataframes maestro y filtrado en el estado de la sesión
+                st.session_state.df_original.update(df_updated_view)
+                st.session_state.df_filtrado.update(df_updated_view)
 
 def render_player_frame(clip_info: pd.Series, autoplay: bool = True):
     """Muestra el reproductor de video de YouTube para un clip específico."""
