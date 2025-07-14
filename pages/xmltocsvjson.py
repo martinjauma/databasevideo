@@ -7,7 +7,7 @@ import pandas as pd
 import json
 
 # Archivo de entrada
-xml_file = "data/dataxml.xml"
+xml_file = "/Users/martinjauma/Documents/CODIGO/playlistcsv/data/logoMatch.xml"
 
 # Parsear el XML
 tree = ET.parse(xml_file)
@@ -38,10 +38,10 @@ for inst in root.findall(".//instance"):
 df = pd.DataFrame(instances)
 
 # guardar como CSV
-df.to_csv("data/output.csv", index=False, encoding="utf-8-sig")
+df.to_csv("data/outputLongo.csv", index=False, encoding="utf-8-sig")
 
 # guardar como JSON
-with open("data/output.json", "w", encoding="utf-8") as f:
+with open("data/outputlongo.json", "w", encoding="utf-8") as f:
     json.dump(instances, f, ensure_ascii=False, indent=2)
 
 print("✅ Archivo CSV y JSON generados correctamente.")

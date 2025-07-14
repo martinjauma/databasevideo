@@ -57,18 +57,67 @@ def render_sidebar():
         if uploaded_file:
             try:
                 df = pd.read_csv(uploaded_file, sep=None, engine="python")
-                df.columns = [col.strip() for col in df.columns]
-                columnas_req = ["Row Name", "Clip Start", "Clip End", "EQUIPO"]
-                if not all(col in df.columns for col in columnas_req):
-                    st.error(f"❌ CSV debe contener: {', '.join(columnas_req)}")
+                
+                # --- Lógica de mapeo de columnas flexible y insensible a mayúsculas ---
+                
+                # 1. Normalizar columnas del CSV (quitar espacios)
+                original_cols = {col.strip(): col for col in df.columns}
+                df.rename(columns={v: k for k, v in original_cols.items()}, inplace=True)
+                
+                # 2. Crear un mapa de columnas en minúsculas para la búsqueda
+                lower_case_map = {col.lower(): col for col in df.columns}
+
+                # 3. Definir los mapeos estándar -> posibles variantes (en minúsculas)
+                column_mapping = {
+                    'Row Name': ['row name', 'code'],
+                    'Clip Start': ['clip start', 'start'],
+                    'Clip End': ['clip end', 'stop', 'end'], # 'end' añadido
+                    'EQUIPO': ['equipo']
+                }
+
+                rename_final = {}
+                missing_columns = []
+
+                # 4. Encontrar las columnas y preparar el renombrado
+                for standard_name, possible_names in column_mapping.items():
+                    found = False
+                    for name in possible_names:
+                        if name in lower_case_map:
+                            original_name = lower_case_map[name]
+                            rename_final[original_name] = standard_name
+                            found = True
+                            break
+                    if not found:
+                        missing_columns.append(standard_name)
+                
+                # 5. Validar si falta alguna columna obligatoria
+                required_columns = ['Row Name', 'Clip Start', 'Clip End']
+                missing_required = [col for col in required_columns if col in missing_columns]
+
+                if missing_required:
+                    st.error(f"❌ Faltan columnas obligatorias. Asegúrate de que tu CSV contenga: {', '.join(missing_required)}")
                     return
+
+                # 6. Aplicar el renombrado para las columnas encontradas
+                df.rename(columns=rename_final, inplace=True)
+
+                # 7. Manejar la columna opcional 'EQUIPO'
+                if 'EQUIPO' not in df.columns:
+                    df['EQUIPO'] = 'N/A' # Añadir valor por defecto
+                    st.warning("⚠️ Columna 'EQUIPO' no encontrada. Se añadió un valor por defecto ('N/A') que puedes editar en la tabla.")
+
+                # Rellenar valores nulos en EQUIPO por si el CSV los tuviera
+                df['EQUIPO'].fillna('N/A', inplace=True)
+
+                # --- Fin de la lógica de mapeo ---
+
                 df["Clip Start"] = pd.to_numeric(df["Clip Start"], errors='coerce')
                 df["Clip End"] = pd.to_numeric(df["Clip End"], errors='coerce')
                 df.dropna(subset=["Clip Start", "Clip End"], inplace=True)
                 df["duracion"] = (df["Clip End"] - df["Clip Start"]).round(0)
 
                 if "URL" in df.columns:
-                    df["video_id"] = df["URL"].apply(extraer_video_id)
+                    df["video_id"] = df["URL"].str.strip().apply(extraer_video_id)
                     st.success("✅ Se usaron URLs individuales del CSV.")
                 else:
                     video_id = extraer_video_id(st.session_state.youtube_url)
@@ -78,7 +127,7 @@ def render_sidebar():
                 st.session_state.df_original = df
                 st.success("✅ CSV cargado.")
             except Exception as e:
-                st.error(f"❌ Error al leer CSV: {e}")
+                st.error(f"❌ Error al procesar el CSV: {e}")
                 return
 
         if st.session_state.df_original is None:
@@ -106,7 +155,7 @@ def render_sidebar():
 
 
 def render_aggrid(height=300):
-    """Muestra la tabla de clips interactiva y maneja la selección."""
+    """Muestra la tabla de clips interactiva y maneja la selección y edición."""
     if st.session_state.playlist_active:
         df_display = st.session_state.clips_seleccionados.copy()
     else:
@@ -139,10 +188,24 @@ def render_aggrid(height=300):
             }
         """))
     else:
-        gb.configure_selection("multiple", use_checkbox=True, pre_selected_rows=st.session_state.clips_seleccionados.index.tolist())
+        # Configurar edición y selección para la tabla principal
+        gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True, pre_selected_rows=st.session_state.clips_seleccionados.index.tolist())
+        gb.configure_column("Row Name", editable=True)
+        gb.configure_column("EQUIPO", editable=True)
+
 
     grid_options = gb.build()
-    grid_response = AgGrid(df_display, gridOptions=grid_options, update_mode=GridUpdateMode.MODEL_CHANGED, theme="streamlit", height=height, allow_unsafe_jscode=True, key="aggrid_clips")
+    grid_response = AgGrid(
+        df_display, 
+        gridOptions=grid_options, 
+        update_mode=GridUpdateMode.MODEL_CHANGED, 
+        theme="streamlit", 
+        height=height, 
+        allow_unsafe_jscode=True, 
+        key="aggrid_clips",
+        # Evita que la tabla se recargue sola, permitiendo que nuestro código maneje el estado
+        reload_data=False 
+    )
 
     if st.session_state.playlist_active:
         if grid_response.get("component_value"):
@@ -158,7 +221,19 @@ def render_aggrid(height=300):
                     st.session_state.playlist_index = match_index[0]
                     st.rerun()
     else:
+        # Este bloque maneja la tabla principal (no la playlist)
         st.session_state.clips_seleccionados = pd.DataFrame(grid_response.get("selected_rows", []))
+        
+        # Procesar actualizaciones de la edición de celdas
+        if grid_response['data'] is not None:
+            df_updated_view = pd.DataFrame(grid_response['data'])
+            
+            # Restaurar el índice original para alinear los datos para las actualizaciones
+            df_updated_view.index = df_display.index
+            
+            # Actualizar los dataframes maestro y filtrado en el estado de la sesión
+            st.session_state.df_original.update(df_updated_view)
+            st.session_state.df_filtrado.update(df_updated_view)
 
 def render_player_frame(clip_info: pd.Series, autoplay: bool = True):
     """Muestra el reproductor de video de YouTube para un clip específico."""
@@ -172,51 +247,7 @@ def render_player_frame(clip_info: pd.Series, autoplay: bool = True):
         height=480
     )
 
-def render_playlist_controls():
-    """Muestra los botones de control de la playlist y descarga."""
-    clips = st.session_state.clips_seleccionados
-    is_playlist_empty = clips.empty
-    
-    is_first_clip = st.session_state.playlist_index == 0
-    is_last_clip = st.session_state.playlist_index >= len(clips) - 1
 
-    cols = st.columns([1.5, 1, 1, 1, 1.5, 2])
-    if cols[0].button("▶️ Iniciar Playlist", disabled=is_playlist_empty):
-        st.session_state.playlist_active = True
-        st.session_state.playlist_index = 0
-        st.rerun()
-
-    if cols[1].button("⏪ Anterior", disabled=not st.session_state.playlist_active or is_first_clip):
-        st.session_state.playlist_index -= 1
-        st.rerun()
-
-    if cols[2].button("⏩ Proximo", disabled=not st.session_state.playlist_active or is_last_clip):
-        st.session_state.playlist_index += 1
-        st.rerun()
-
-    if cols[3].button("🛑 Parar", disabled=not st.session_state.playlist_active):
-        st.session_state.playlist_active = False
-        st.rerun()
-    
-    csv_data = b""
-    if not is_playlist_empty:
-        full_details_list = [get_full_clip_details(row) for _, row in clips.iterrows()]
-        full_details_list = [row for row in full_details_list if row is not None]
-        if full_details_list:
-            df_to_download = pd.DataFrame(full_details_list)
-            csv_data = df_to_download.to_csv(index=False).encode('utf-8-sig')
-
-    cols[4].download_button(
-        label="📥 Descargar CSV",
-        data=csv_data,
-        file_name="playlist_seleccionada.csv",
-        mime="text/csv",
-        disabled=is_playlist_empty,
-        help="Descarga los clips seleccionados en formato CSV."
-    )
-
-    if st.session_state.playlist_active and not is_playlist_empty:
-        cols[5].info(f"**Clip {st.session_state.playlist_index + 1} de {len(clips)}**")
 
 def get_full_clip_details(clip_row: pd.Series) -> Optional[pd.Series]:
     """Busca los detalles completos de un clip en el DataFrame original."""
@@ -239,19 +270,7 @@ def render_main_view():
     expander_expanded = st.session_state.get("show_expander", True)
 
     with st.expander("📁 Lista de Clips", expanded=expander_expanded):
-        if not st.session_state.get("playlist_active", False):
-            with st.form("clip_form"):
-                render_aggrid()
-                cols_form = st.columns([1, 4])
-                with cols_form[0]:
-                    submitted = st.form_submit_button("\u25b6\ufe0f Iniciar Playlist")
-
-                if submitted:
-                    st.session_state.playlist_active = True
-                    st.session_state.playlist_index = 0
-                    st.session_state.show_expander = False
-        else:
-            render_aggrid()
+        render_aggrid()
 
     # Determinar qué clip mostrar
     clip_to_show = None
@@ -264,14 +283,9 @@ def render_main_view():
             clip_to_show = get_full_clip_details(clip_info)
             autoplay = True
         else:
-            st.success("\u2705 Playlist finalizada o vacía.")
+            st.success("✅ Playlist finalizada o vacía.")
             st.session_state.playlist_active = False
-    elif not clips_seleccionados.empty:
-        last_index = st.session_state.get("last_selected_index")
-        if last_index is not None and last_index in clips_seleccionados.index:
-            clip_info = clips_seleccionados.loc[last_index]
-            clip_to_show = get_full_clip_details(clip_info)
-            autoplay = False
+            st.session_state.show_expander = True # Expandir al finalizar
 
     # Renderizar el reproductor y el título si hay un clip
     if clip_to_show is not None:
@@ -283,28 +297,40 @@ def render_main_view():
 
     st.divider()
 
-    # --- Botones de control sin Iniciar Playlist ---
+    # --- Botones de control unificados ---
     clips = st.session_state.clips_seleccionados
     is_playlist_empty = clips.empty
 
     is_first_clip = st.session_state.playlist_index == 0
     is_last_clip = st.session_state.playlist_index >= len(clips) - 1
 
-    cols = st.columns([1, 1, 1, 1.5, 2.5])
+    # Columnas para los botones
+    cols = st.columns([1.5, 1, 1, 1, 1.5, 2])
 
-    if cols[0].button("⏪ Anterior", disabled=not st.session_state.playlist_active or is_first_clip):
+    # Botón Iniciar Playlist
+    if cols[0].button("▶️ Iniciar Playlist", disabled=is_playlist_empty or st.session_state.playlist_active):
+        st.session_state.playlist_active = True
+        st.session_state.playlist_index = 0
+        st.session_state.show_expander = False # Colapsar al iniciar
+        st.rerun()
+
+    # Botón Anterior
+    if cols[1].button("⏪ Anterior", disabled=not st.session_state.playlist_active or is_first_clip):
         st.session_state.playlist_index -= 1
         st.rerun()
 
-    if cols[1].button("⏩ Próximo", disabled=not st.session_state.playlist_active or is_last_clip):
+    # Botón Próximo
+    if cols[2].button("⏩ Próximo", disabled=not st.session_state.playlist_active or is_last_clip):
         st.session_state.playlist_index += 1
         st.rerun()
 
-    if cols[2].button("🔝 Detener", disabled=not st.session_state.playlist_active):
+    # Botón Detener
+    if cols[3].button("🛑 Detener", disabled=not st.session_state.playlist_active):
         st.session_state.playlist_active = False
-        st.session_state.show_expander = True
+        st.session_state.show_expander = True # Expandir al detener
         st.rerun()
 
+    # Botón Descargar CSV
     csv_data = b""
     if not is_playlist_empty:
         full_details_list = [get_full_clip_details(row) for _, row in clips.iterrows()]
@@ -313,8 +339,8 @@ def render_main_view():
             df_to_download = pd.DataFrame(full_details_list)
             csv_data = df_to_download.to_csv(index=False).encode('utf-8-sig')
 
-    cols[3].download_button(
-        label=" Descargar CSV",
+    cols[4].download_button(
+        label="📥 Descargar CSV",
         data=csv_data,
         file_name="playlist_seleccionada.csv",
         mime="text/csv",
@@ -322,10 +348,12 @@ def render_main_view():
         help="Descarga los clips seleccionados en formato CSV."
     )
 
+    # Información del clip actual
     if st.session_state.playlist_active and not is_playlist_empty:
-        cols[4].info(f"**Clip {st.session_state.playlist_index + 1} de {len(clips)}**")
+        cols[5].info(f"**Clip {st.session_state.playlist_index + 1} de {len(clips)}**")
 
     st.divider()
+
 
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -341,7 +369,42 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("🏉 Reproductor Inteligente de Clips")
+    st.title("🏉 🏀 Base de Datos streaming")
+
+    with st.expander("ℹ️ Ayuda y Estructura de Datos"):
+        st.markdown("""
+        ### ¿Qué hace esta página?
+        Esta aplicación te permite analizar clips de video a partir de un archivo CSV y una URL de YouTube.
+        
+        - **Carga y Visualiza**: Carga un archivo CSV con marcas de tiempo y metadatos de clips. La aplicación los mostrará en una tabla interactiva.
+        - **Filtra y Selecciona**: Puedes filtrar los clips por equipo o evento y seleccionar los que te interesen usando las casillas de verificación.
+        - **Crea una Playlist**: Una vez seleccionados, puedes iniciar una playlist para ver los clips uno tras otro.
+        - **Descarga**: Puedes descargar los datos de los clips que seleccionaste en un nuevo archivo CSV.
+
+        ### Estructura del Archivo CSV
+        Para que la aplicación funcione correctamente, el archivo CSV que subas debe tener una estructura específica y contener las siguientes columnas **obligatorias**:
+
+        - **`Row Name`**: (Texto) El nombre o la descripción del clip/evento (ej: "Try Jugador X", "Defensa Lineout").
+        - **`Clip Start`**: (Numérico) El segundo exacto en el que comienza el clip dentro del video de YouTube.
+        - **`Clip End`**: (Numérico) El segundo exacto en el que termina el clip.
+        - **`EQUIPO`**: (Texto) El nombre del equipo o la categoría a la que pertenece el clip.
+
+        Opcionalmente, puedes incluir una columna `URL` si cada clip proviene de un video de YouTube diferente. Si no se proporciona, se usará la URL general ingresada en la barra lateral.
+        """)
+
+        sample_csv_data = '''"Row Name","Clip Start","Clip End","EQUIPO","URL"
+"Try Jugador A",10,25,"Equipo Rojo","ESTE CAMPO ES OPCIONAL"
+"Try Jugador B",30,45,"Equipo Azul","https://www.youtube.com/watch?v=XNaqqZNJUMc"
+"Falta Jugador C",70,80,"Equipo Rojo","https://www.youtube.com/watch?v=XNaqqZNJUMc"
+"Defensa Lineout",50,65,"Equipo Azul"
+"Scrum Ganado",120,130,"Equipo Rojo"
+'''
+        st.download_button(
+            label="📥 Descargar CSV de Ejemplo con las colimnas obligatorias",
+            data=sample_csv_data.encode('utf-8'),
+            file_name="ejemplo_clips.csv",
+            mime="text/csv",
+        )
 
     inicializar_estado()
     render_sidebar()
