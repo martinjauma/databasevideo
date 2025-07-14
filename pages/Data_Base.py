@@ -371,7 +371,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("🏉 🏀 Base de Datos streaming")
+    st.title("🏉 🏀 Base de Datos streaming 🏑 ⚽ 🎾")
 
     with st.expander("ℹ️ Ayuda y Estructura de Datos"):
         st.markdown("""
