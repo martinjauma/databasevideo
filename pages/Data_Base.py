@@ -401,12 +401,18 @@ def main():
 "Defensa Lineout",50,65,"Equipo Azul"
 "Scrum Ganado",120,130,"Equipo Rojo"
 '''
-        st.download_button(
-            label="📥 Descargar CSV de Ejemplo con las colimnas obligatorias",
-            data=sample_csv_data.encode('utf-8'),
-            file_name="ejemplo_clips.csv",
-            mime="text/csv",
-        )
+        col1, col2 = st.columns([3,1])    
+            
+        with col1:    
+            st.download_button(
+                label="📥 Descargar CSV de Ejemplo con las columnas obligatorias",
+                data=sample_csv_data.encode('utf-8'),
+                file_name="ejemplo_clips.csv",
+                mime="text/csv",
+            )
+        with col2:
+            st.write(" ")
+            st.markdown("[VIDEO TUTORIAL](https://www.youtube.com/watch?v=talYesNhUNQ)")
 
     inicializar_estado()
     render_sidebar()
