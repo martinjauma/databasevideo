@@ -412,7 +412,7 @@ def main():
             )
         with col2:
             st.write(" ")
-            st.markdown("[VIDEO TUTORIAL](https://www.youtube.com/watch?v=talYesNhUNQ)")
+            st.markdown("[VIDEO TUTORIAL](https://youtu.be/yHZZbqonZ0Q)")
 
     inicializar_estado()
     render_sidebar()
