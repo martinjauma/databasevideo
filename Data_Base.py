@@ -366,7 +366,7 @@ def main():
     
     st.markdown("""
         <style>
-            .block-container { padding-top: 1rem; }
+            .block-container { padding-top: 2rem; }
             .video-container { margin: auto; max-width: 900px; padding-top: 10px; }
         </style>
     """, unsafe_allow_html=True)
