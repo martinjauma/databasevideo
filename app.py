@@ -24,8 +24,8 @@ if selected_main == "YouTube":
     if selected_youtube == "Links":
         exec(open("page/YouTube/Links_YouTube.py").read())
 
-    elif selected_youtube == "Playlist":
-        exec(open("page/YouTube/Playlist_YouTube.py").read())
+    # elif selected_youtube == "Playlist":
+    #     exec(open("page/YouTube/Playlist_YouTube.py").read())
 
     elif selected_youtube == "Data Base":
         exec(open("page/YouTube/Data_Base.py").read())
