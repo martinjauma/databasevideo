@@ -1,7 +1,28 @@
 from streamlit_option_menu import option_menu
 import streamlit as st
+from modules.auth_google import login_required
+
 
 st.set_page_config(page_title="Data App", layout="wide")
+
+
+# -- Autenticación Requerida --
+login_required()
+
+# -- Mostrar estado del registro en DB --
+if 'db_log_status' in st.session_state:
+    if st.session_state['db_log_status'] == "Success":
+        st.toast("✅ Login registrado en DB.")
+    elif st.session_state['db_log_status'] == "Error":
+        st.error(f"Error al registrar en DB: {st.session_state['db_log_error']}")
+    # Limpiar el estado para que el mensaje no se repita en cada recarga
+    del st.session_state['db_log_status']
+    if 'db_log_error' in st.session_state:
+        del st.session_state['db_log_error']
+
+current_user = st.user.name or "usuario"  # nombre del usuario logueado
+
+
 
 with st.sidebar:
     selected_main = option_menu(
