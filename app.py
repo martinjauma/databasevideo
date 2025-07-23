@@ -16,7 +16,7 @@ if selected_main == "YouTube":
     st.markdown("##  Herramientas de YouTube")
     selected_youtube = option_menu(
         menu_title=None,
-        options=["Links", "Playlist", "Data Base"],
+        options=["Links", "Data Base"],
         icons=["link", "list", "database"],
         orientation="horizontal",
     )
