@@ -1,5 +1,5 @@
 [theme]
 base="dark"
-
-[server]
-hideSourceLink = true
+primaryColor="#00BCD4"
+backgroundColor="#141c37"
+secondaryBackgroundColor="#292a48"

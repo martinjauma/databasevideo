@@ -6,3 +6,4 @@ streamlit-aggrid
 reportlab
 Pillow
 yt-dlp
+pymongo

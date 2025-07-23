@@ -2,8 +2,8 @@
 playlistcsv-env/
 env/
 venv/
+.venv/
 *.env
-*.venv
 
 # Carpeta de sistema
 ignore/
@@ -15,6 +15,7 @@ Thumbs.db
 # Cachés de Python
 __pycache__/
 *.py[cod]
+*.pyc
 
 # Logs y bases de datos
 *.log
@@ -23,4 +24,6 @@ __pycache__/
 # Archivos de configuración de IDEs
 .vscode/
 .idea/
-.DS_Store
+
+# Streamlit
+.streamlit/secrets.toml
