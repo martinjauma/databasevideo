@@ -23,7 +23,18 @@ def login_required():
         st.stop()  # Detiene la ejecución de la app si no está logueado
     else:
         _log_login_event(st.user.email)
-        _show_user_sidebar()
+
+
+def render_user_info():
+    # st.header("👤 Usuario")
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        if st.user.picture:
+            st.image(st.user.picture, use_container_width=True)
+    with col2:
+        st.subheader(st.user.name)
+        st.caption(st.user.email)
+    st.button("🏃‍♂️‍➡️ Cerrar sesión", on_click=st.logout)
 
 def _log_login_event(user_email):
     # Solo registrar el evento de login una vez por sesión.
@@ -55,17 +66,3 @@ def _show_login_screen():
     st.title("🔐 Inicio de sesión requerido")
     st.subheader("Iniciá sesión con Google para continuar.")
     st.button("➡️ Iniciar sesión con Google", on_click=st.login, type="primary")
-
-def _show_user_sidebar():
-    with st.sidebar:
-        st.sidebar.image("img/logo.png", width=200)
-        st.divider()
-        # st.header("👤 Usuario")
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            if st.user.picture:
-                st.image(st.user.picture, use_container_width=True)
-        with col2:
-            st.subheader(st.user.name)
-        st.caption(st.user.email)
-        st.button("🏃‍♂️‍➡️ Cerrar sesión", on_click=st.logout)

@@ -1,4 +1,3 @@
-
 # Force redeploy
 import streamlit as st
 import pandas as pd
@@ -51,7 +50,8 @@ def inicializar_estado():
 
 def render_sidebar():
     with st.sidebar:
-        st.header("⚙️ Controles")
+        st.divider()
+        st.subheader("Cargar CSV y URL de YouTube")
         st.session_state.youtube_url = st.text_input("🔗 URL YouTube", value=st.session_state.youtube_url)
 
         uploaded_file = st.file_uploader("📂 Cargar CSV", type=["csv"])
@@ -187,7 +187,8 @@ def render_aggrid(height=300):
                     }
                 });
             }
-        """))
+        """
+))
     else:
         # Configurar edición y selección para la tabla principal
         gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True, pre_selected_rows=st.session_state.clips_seleccionados.index.tolist())

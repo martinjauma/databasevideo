@@ -1,6 +1,6 @@
 from streamlit_option_menu import option_menu
 import streamlit as st
-from modules.auth_google import login_required
+from modules.auth_google import login_required, render_user_info
 
 
 st.set_page_config(page_title="Data App", layout="wide")
@@ -25,6 +25,28 @@ current_user = st.user.name or "usuario"  # nombre del usuario logueado
 
 
 with st.sidebar:
+    st.markdown(
+        """
+        <style>
+            /* Target the stImage container directly within the sidebar */
+            [data-testid="stSidebar"] [data-testid="stImage"] {
+                margin-top: 0px !important;
+                margin-bottom: 0px !important;
+                padding-top: 0px !important;
+                padding-bottom: 0px !important;
+            }
+            /* Target the image itself within the stImage container */
+            [data-testid="stSidebar"] [data-testid="stImage"] img {
+                width: 200px !important; /* Force width */
+                height: auto !important; /* Maintain aspect ratio */
+                display: block !important; /* Remove extra space below image */
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    st.sidebar.image("img/logo.png", width=100)
+    st.divider()
     selected_main = option_menu(
         menu_title="Menú Principal",
         options=["YouTube", "Fulcrum","LongoMatch"],
@@ -32,13 +54,18 @@ with st.sidebar:
         menu_icon="cast",
         default_index=0,
     )
+    st.divider()
+    render_user_info()
+
+
+
 
 if selected_main == "YouTube":
     st.markdown("##  Herramientas de YouTube")
     selected_youtube = option_menu(
         menu_title=None,
-        options=["Links", "Data Base"],
-        icons=["link", "list", "database"],
+        options=["Data Base","Links"],
+        icons=["database","link"],
         orientation="horizontal",
     )
 
@@ -55,8 +82,8 @@ elif selected_main == "Fulcrum":
     st.markdown("##  Herramientas de YouTube")
     selected_Fulcrum = option_menu(
         menu_title=None,
-        options=["Piston HLS - MP4", "Angles"],
-        icons=["link", "list", "database"],
+        options=["Angles", "Piston HLS - MP4"],
+        icons=["link", "list"],
         orientation="horizontal",
     )
     if selected_Fulcrum == "Piston HLS - MP4":
