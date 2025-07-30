@@ -4,8 +4,6 @@ import requests
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 from typing import Optional
 
-# --- CONSTANTES Y CONFIGURACIÓN ---
-ST_PAGE_CONFIG = {"page_title": "Rugby Clip Viewer", "layout": "wide"}
 
 # --- FUNCIONES DE UTILIDAD ---
 

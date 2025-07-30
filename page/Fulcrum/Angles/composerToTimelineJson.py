@@ -1,5 +1,3 @@
-# app.py
-
 import streamlit as st
 import plistlib
 import json
@@ -42,32 +40,34 @@ def convert_composer_to_timeline(plist_file, current_user):
 
     return timeline_data
 
-# ────────────────────────────────
-# INTERFAZ PRINCIPAL
-# ────────────────────────────────
-st.title("Convertir ***Composer*** a ***Timeline***")
 
-st.write("Subí un archivo `.plist` de **Angles Composer** para convertirlo a `.json` de Timeline.")
+def run_composer_to_timeline_page(current_user):
+    # ────────────────────────────────
+    # INTERFAZ PRINCIPAL
+    # ────────────────────────────────
+    st.title("Convertir ***Composer*** a ***Timeline***")
 
-uploaded_file = st.file_uploader("📤 Archivo .plist", type="plist")
+    st.write("Subí un archivo `.plist` de **Angles Composer** para convertirlo a `.json` de Timeline.")
 
-if uploaded_file is not None:
-    st.success("Archivo subido exitosamente.")
+    uploaded_file = st.file_uploader("📤 Archivo .plist", type="plist")
 
-    if st.button("⚙️ Convertir a JSON"):
-        try:
-            timeline_json_data = convert_composer_to_timeline(uploaded_file)
-            json_string = json.dumps(timeline_json_data, indent=2)
+    if uploaded_file is not None:
+        st.success("Archivo subido exitosamente.")
 
-            st.download_button(
-                label="📥 Descargar JSON",
-                file_name="Timeline.json",
-                mime="application/json",
-                data=json_string,
-            )
+        if st.button("⚙️ Convertir a JSON"):
+            try:
+                timeline_json_data = convert_composer_to_timeline(uploaded_file, current_user)
+                json_string = json.dumps(timeline_json_data, indent=2)
 
-            with st.expander("👁️ Ver JSON Convertido", expanded=False):
-                st.json(timeline_json_data)
+                st.download_button(
+                    label="📥 Descargar JSON",
+                    file_name="Timeline.json",
+                    mime="application/json",
+                    data=json_string,
+                )
 
-        except Exception as e:
-            st.error(f"❌ Error en la conversión: {e}")
+                with st.expander("👁️ Ver JSON Convertido", expanded=False):
+                    st.json(timeline_json_data)
+
+            except Exception as e:
+                st.error(f"❌ Error en la conversión: {e}")

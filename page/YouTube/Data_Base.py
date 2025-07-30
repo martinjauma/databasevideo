@@ -5,9 +5,6 @@ import requests
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 from typing import Optional
 
-# --- CONSTANTES Y CONFIGURACIÓN ---
-ST_PAGE_CONFIG = {"page_title": "Rugby Clip Viewer", "layout": "wide"}
-
 # --- FUNCIONES DE UTILIDAD ---
 
 def obtener_titulo_youtube(url: str) -> str:
@@ -35,18 +32,20 @@ def extraer_video_id(url: str) -> Optional[str]:
 
 def inicializar_estado():
     """Inicializa todas las variables necesarias en el session_state de Streamlit."""
-    defaults = {
-        "youtube_url": "https://www.youtube.com/watch?v=XNaqqZNJUMc",
-        "df_original": None,
-        "df_filtrado": pd.DataFrame(),
-        "clips_seleccionados": pd.DataFrame(),
-        "playlist_index": 0,
-        "playlist_active": False,
-        "active_clip_details": None,
-    }
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+    if "youtube_url" not in st.session_state:
+        st.session_state.youtube_url = "https://www.youtube.com/watch?v=XNaqqZNJUMc"
+    if "df_original" not in st.session_state:
+        st.session_state.df_original = None
+    if "df_filtrado" not in st.session_state:
+        st.session_state.df_filtrado = pd.DataFrame()
+    if "clips_seleccionados" not in st.session_state:
+        st.session_state.clips_seleccionados = pd.DataFrame()
+    if "playlist_index" not in st.session_state:
+        st.session_state.playlist_index = 0
+    if "playlist_active" not in st.session_state:
+        st.session_state.playlist_active = False
+    if "active_clip_details" not in st.session_state:
+        st.session_state.active_clip_details = None
 
 def render_sidebar():
     with st.sidebar:
@@ -217,7 +216,7 @@ def render_aggrid(height=300):
                 match_index = clips_df[
                     (clips_df["Row Name"] == selected_row_data["Row Name"]) &
                     (clips_df["EQUIPO"] == selected_row_data["EQUIPO"]) &
-                    (clips_df["Clip Start"] == selected_row_data["Clip Start"])
+                    (clips_df["Clip Start"].round(0) == selected_row_data["Clip Start"])
                 ].index
                 if not match_index.empty:
                     st.session_state.playlist_index = match_index[0]
@@ -359,13 +358,9 @@ def render_main_view():
     st.divider()
 
 
-
 # --- APLICACIÓN PRINCIPAL ---
 
-def main():
-    """Función principal que ejecuta la aplicación Streamlit."""
-    st.set_page_config(**ST_PAGE_CONFIG)
-    
+def run_data_base_page():
     st.markdown("""
         <style>
             .block-container { padding-top: 2rem; }
@@ -421,9 +416,5 @@ def main():
 
     if st.session_state.df_original is None:
         st.info("👈 Comienza cargando un archivo CSV y una URL de YouTube en la barra lateral.")
-        return
-
-    render_main_view()
-
-if __name__ == "__main__":
-    main()
+    else:
+        render_main_view()

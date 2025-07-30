@@ -74,33 +74,31 @@ def generate_pdf_with_angles(session_name, angles_info):
     return buffer
 
 
-# 🌐 Streamlit UI
-st.set_page_config(page_title="Generador PDF HLS", page_icon="🎬")
+def run_piston_page():
+    st.title("🎬 Generador de PDF desde JSON de HLS")
+    st.markdown("Cargá un JSON HLS de Piston Cloud")
 
-st.title("🎬 Generador de PDF desde JSON de HLS")
-st.markdown("Cargá un JSON HLS de Piston Cloud")
+    json_input = st.text_area("📥 Pegá el JSON con los HLS", height=350, placeholder='Ejemplo:\n{\n  "session_name": "Argentina vs Chile",\n  "angles": [\n    {"angle_name": "Frontal", "angle_m3u8_url": "https://example.com/frontal.m3u8"},\n    {"angle_name": "Dron", "angle_m3u8_url": "https://example.com/dron.m3u8"}\n  ]\n}')
 
-json_input = st.text_area("📥 Pegá el JSON con los HLS", height=350, placeholder='Ejemplo:\n{\n  "session_name": "Argentina vs Chile",\n  "angles": [\n    {"angle_name": "Frontal", "angle_m3u8_url": "https://example.com/frontal.m3u8"},\n    {"angle_name": "Dron", "angle_m3u8_url": "https://example.com/dron.m3u8"}\n  ]\n}')
+    if st.button("🎯 Generar PDF"):
+        if not json_input.strip():
+            st.error("❌ Pegá el JSON para continuar.")
+        else:
+            try:
+                data = json.loads(json_input)
 
-if st.button("🎯 Generar PDF"):
-    if not json_input.strip():
-        st.error("❌ Pegá el JSON para continuar.")
-    else:
-        try:
-            data = json.loads(json_input)
-
-            if "session_name" not in data or "angles" not in data:
-                st.error("❌ El JSON no contiene los campos 'session_name' y 'angles'.")
-            else:
-                session_name = data["session_name"]
-                angles = data["angles"]
-
-                if not isinstance(angles, list) or not all("angle_m3u8_url" in angle and "angle_name" in angle for angle in angles):
-                    st.error("❌ Cada ángulo debe contener 'angle_name' y 'angle_m3u8_url'.")
+                if "session_name" not in data or "angles" not in data:
+                    st.error("❌ El JSON no contiene los campos 'session_name' y 'angles'.")
                 else:
-                    pdf_buffer = generate_pdf_with_angles(session_name, angles)
-                    st.success(f"✅ PDF generado para {session_name}")
-                    st.download_button("📄 Descargar PDF", data=pdf_buffer, file_name=f"{session_name}.pdf", mime="application/pdf")
+                    session_name = data["session_name"]
+                    angles = data["angles"]
 
-        except json.JSONDecodeError:
-            st.error("❌ El texto ingresado no es un JSON válido.")
+                    if not isinstance(angles, list) or not all("angle_m3u8_url" in angle and "angle_name" in angle for angle in angles):
+                        st.error("❌ Cada ángulo debe contener 'angle_name' y 'angle_m3u8_url'.")
+                    else:
+                        pdf_buffer = generate_pdf_with_angles(session_name, angles)
+                        st.success(f"✅ PDF generado para {session_name}")
+                        st.download_button("📄 Descargar PDF", data=pdf_buffer, file_name=f"{session_name}.pdf", mime="application/pdf")
+
+            except json.JSONDecodeError:
+                st.error("❌ El texto ingresado no es un JSON válido.")
