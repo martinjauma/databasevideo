@@ -61,7 +61,7 @@ if st.button("📩 Obtener videos") and canal_input:
 
 
 # --------------------------- DESCARGAR VIDEO CON PROGRESO ---------------------------
-st.title("🎬 Descargar Video de YouTube con Progreso")
+st.title("🎬 Descargar Video de YouTube")
 video_url = st.text_input("📎 URL del Video de YouTube", placeholder="https://www.youtube.com/watch?v=...")
 
 if st.button("📥 Descargar Video") and video_url:
