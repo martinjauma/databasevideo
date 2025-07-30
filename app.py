@@ -48,6 +48,9 @@ def show_payment_page():
         st.subheader("Pagar en Dólares (USD)")
         st.button("Suscribirse con Tarjeta (Stripe)", disabled=True)
 
+    st.markdown("--- ")
+    st.button("🏃‍♂️‍➡️ Cerrar sesión", on_click=st.logout)
+
 def show_main_app():
     # -- Mostrar estado del registro en DB --
     if 'db_log_status' in st.session_state:

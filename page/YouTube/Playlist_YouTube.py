@@ -256,8 +256,12 @@ def render_main_view():
 # --- APLICACIÓN PRINCIPAL ---
 
 def main():
-    """Función principal que ejecuta la aplicación Streamlit."""
-    st.set_page_config(**ST_PAGE_CONFIG)
+    """Función principal que inicializa el estado y renderiza la aplicación."""
+    st.set_page_config(
+        page_title="Rugby Clip Viewer",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
     
     st.markdown("""
         <style>
