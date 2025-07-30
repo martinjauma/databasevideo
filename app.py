@@ -125,7 +125,9 @@ def show_main_app():
             from page.Fulcrum.Piston.piston import run_piston_page
             run_piston_page()
         elif selected_Fulcrum == "Angles":
-            exec(open("page/Fulcrum/Angles/composerToTimelineJson.py").read(), globals(), locals())
+            from page.Fulcrum.Angles.composerToTimelineJson import run_composer_to_timeline_page
+            run_composer_to_timeline_page(st.user.name)
+    
 
     elif selected_main == "LongoMatch":
         from page.Longo_Match.xmltocsvjson import run_xml_to_csv_json_page
