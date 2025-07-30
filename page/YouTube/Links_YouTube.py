@@ -26,41 +26,6 @@ def limpiar_url_youtube(url):
 
 
 def run_links_youtube_page():
-    # --------------------------- EXTRACCIÓN DE LINKS DE UN CANAL ---------------------------
-    st.title("📥 Extraer URL de un canal de YouTube")
-    canal_input = st.text_input("📎 Canal de YouTube", placeholder="https://www.youtube.com/@unionargentinaderugby")
-
-    if st.button("📩 Obtener videos") and canal_input:
-        yt_dlp = shutil.which("yt-dlp")
-        if not yt_dlp:
-            st.error("❌ yt-dlp no está instalado.")
-            st.stop()
-
-        result = subprocess.run(
-            [yt_dlp, "--flat-playlist", "-J", canal_input],
-            capture_output=True, text=True
-        )
-
-        if result.returncode != 0 or not result.stdout.strip():
-            st.error("❌ Error al obtener los videos del canal.")
-            st.code(result.stderr)
-            st.stop()
-
-        try:
-            data = json.loads(result.stdout)
-            videos = data.get("entries", [])
-            df = pd.DataFrame([
-                {
-                    "Título": v.get("title"),
-                    "URL": f"https://www.youtube.com/watch?v={v.get('id')}"
-                } for v in videos if v.get("id")
-            ])
-            st.dataframe(df)
-            st.download_button("📥 Descargar CSV", df.to_csv(index=False), file_name="videos_canal.csv", mime="text/csv")
-        except Exception as e:
-            st.error(f"❌ Error al procesar la información: {e}")
-
-
     # --------------------------- DESCARGAR VIDEO CON PROGRESO ---------------------------
     st.title("🎬 Descargar Video de YouTube")
     video_url = st.text_input("📎 URL del Video de YouTube", placeholder="https://www.youtube.com/watch?v=...")
@@ -126,3 +91,39 @@ def run_links_youtube_page():
 
             except Exception as e:
                 st.error(f"❌ Error: {e}")
+    st.divider()
+                
+# --------------------------- EXTRACCIÓN DE LINKS DE UN CANAL ---------------------------
+    st.title("📥 Extraer URL de un canal de YouTube")
+    canal_input = st.text_input("📎 Canal de YouTube", placeholder="https://www.youtube.com/@unionargentinaderugby")
+
+    if st.button("📩 Obtener videos") and canal_input:
+        yt_dlp = shutil.which("yt-dlp")
+        if not yt_dlp:
+            st.error("❌ yt-dlp no está instalado.")
+            st.stop()
+
+        result = subprocess.run(
+            [yt_dlp, "--flat-playlist", "-J", canal_input],
+            capture_output=True, text=True
+        )
+
+        if result.returncode != 0 or not result.stdout.strip():
+            st.error("❌ Error al obtener los videos del canal.")
+            st.code(result.stderr)
+            st.stop()
+
+        try:
+            data = json.loads(result.stdout)
+            videos = data.get("entries", [])
+            df = pd.DataFrame([
+                {
+                    "Título": v.get("title"),
+                    "URL": f"https://www.youtube.com/watch?v={v.get('id')}"
+                } for v in videos if v.get("id")
+            ])
+            st.dataframe(df)
+            st.download_button("📥 Descargar CSV", df.to_csv(index=False), file_name="videos_canal.csv", mime="text/csv")
+        except Exception as e:
+            st.error(f"❌ Error al procesar la información: {e}")
+
