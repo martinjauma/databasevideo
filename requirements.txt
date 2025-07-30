@@ -1,13 +1,4 @@
-pymongo
-pandas
-requests
-streamlit-aggrid
-reportlab
-Pillow
-yt-dlp
-
-streamlit==1.47.0
-streamlit-option-menu==0.3.12
-google-api-python-client==2.128.0
-google-auth-oauthlib==1.2.0
-pytube==15.0.0
+streamlit
+streamlit-option-menu
+ pymongo
+Authlib>=1.3.2
