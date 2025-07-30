@@ -26,4 +26,4 @@ __pycache__/
 .idea/
 
 # Streamlit
-.streamlit/secrets.toml
+.streamlit/secrets.tomlVideos/*.mp4
