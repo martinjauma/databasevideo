@@ -3,7 +3,7 @@ streamlit-option-menu
 pymongo
 pandas
 requests
-st-aggrid
+streamlit-aggrid
 reportlab
 Pillow
 yt-dlp
