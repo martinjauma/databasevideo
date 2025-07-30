@@ -54,7 +54,6 @@ def _log_login_event(user_email):
             st.session_state["login_event_logged"] = True
 
 def _show_login_screen():
-    st.set_page_config(initial_sidebar_state="collapsed")
     st.markdown("""
         <style>
             [data-testid="stSidebar"] {
