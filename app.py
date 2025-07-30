@@ -5,6 +5,9 @@ from modules.auth_google import login_required, render_user_info
 
 st.set_page_config(page_title="Data App", layout="wide")
 
+if 'video_data' not in st.session_state:
+    st.session_state.video_data = None
+
 
 # -- Autenticación Requerida --
 login_required()
