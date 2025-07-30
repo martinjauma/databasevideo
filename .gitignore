@@ -27,3 +27,4 @@ __pycache__/
 
 # Streamlit
 .streamlit/secrets.tomlVideos/*.mp4
+*.toml.streamlit/secrets.toml
