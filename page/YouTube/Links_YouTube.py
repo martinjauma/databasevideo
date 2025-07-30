@@ -7,8 +7,25 @@ import tempfile
 import pandas as pd
 import glob
 import re
+import urllib.parse  # necesario para limpiar la URL
 
 
+# 🔧 FUNCIÓN PARA LIMPIAR LINK DE YOUTUBE (quita &t=3s o ?si=... y admite youtu.be)
+def limpiar_url_youtube(url):
+    parsed = urllib.parse.urlparse(url)
+    query = urllib.parse.parse_qs(parsed.query)
+    video_id = query.get("v", [None])[0]
+
+    # si es un link corto tipo https://youtu.be/xxxxx
+    if not video_id and parsed.netloc == "youtu.be":
+        video_id = parsed.path.strip("/")
+
+    if video_id:
+        return f"https://www.youtube.com/watch?v={video_id}"
+    return url
+
+
+# --------------------------- EXTRACCIÓN DE LINKS DE UN CANAL ---------------------------
 st.title("📥 Extraer URL de un canal de YouTube")
 canal_input = st.text_input("📎 Canal de YouTube", placeholder="https://www.youtube.com/@unionargentinaderugby")
 
@@ -42,6 +59,8 @@ if st.button("📩 Obtener videos") and canal_input:
     except Exception as e:
         st.error(f"❌ Error al procesar la información: {e}")
 
+
+# --------------------------- DESCARGAR VIDEO CON PROGRESO ---------------------------
 st.title("🎬 Descargar Video de YouTube con Progreso")
 video_url = st.text_input("📎 URL del Video de YouTube", placeholder="https://www.youtube.com/watch?v=...")
 
@@ -51,13 +70,16 @@ if st.button("📥 Descargar Video") and video_url:
         st.error("❌ yt-dlp no está instalado.")
         st.stop()
 
+    # ✅ Limpiar la URL antes de usarla
+    video_url = limpiar_url_youtube(video_url)
+
     with tempfile.TemporaryDirectory() as tmpdir:
         output_template = os.path.join(tmpdir, "%(title)s.%(ext)s")
         progress_bar = st.progress(0)
         progress_text = st.empty()
 
         try:
-            # Comando para descarga con merge en MP4
+            # Comando para descarga con codecs compatibles con QuickTime
             command = [
                 yt_dlp,
                 "-f", "bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=mp4a]/mp4",
@@ -75,6 +97,7 @@ if st.button("📥 Descargar Video") and video_url:
             )
 
             for line in process.stdout:
+                # ✅ Solo mostrar progreso, no logs técnicos
                 match = re.search(r'\[download\]\s+(\d+\.\d+)%', line)
                 if match:
                     percent = float(match.group(1))
@@ -102,4 +125,3 @@ if st.button("📥 Descargar Video") and video_url:
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
-
