@@ -8,7 +8,8 @@ import datetime
 try:
     client = MongoClient(st.secrets["MONGO_URI"])
     db = client.login_logs # Nombre de la base de datos
-    login_collection = db.saas_dbvideo # Nombre de la colección
+    login_collection = db.saas_dbvideo # Colección para registrar inicios de sesión
+    suscripciones_collection = db.suscripciones # NUEVA COLECCIÓN para manejar suscripciones
 except Exception as e:
     st.error(f"Error al conectar a MongoDB: {e}")
     st.stop()
@@ -67,14 +68,16 @@ def _show_login_screen():
     st.button("➡️ Iniciar sesión con Google", on_click=st.login, type="primary")
 
 def grant_subscription(user_email):
-    """Otorga una suscripción activa a un usuario, creándolo si no existe."""
+    """Otorga una suscripción activa a un usuario en la colección 'suscripciones'."""
     try:
-        login_collection.update_one(
+        # Usamos la nueva colección de suscripciones
+        suscripciones_collection.update_one(
             {"user_email": user_email},
             {
                 "$set": {
-                    "subscription_status": "active",
-                    "last_update": datetime.datetime.now()
+                    "status": "active", # Cambiamos el nombre del campo para mayor claridad
+                    "payment_date": datetime.datetime.now(),
+                    "source": "mercadopago"
                 },
                 "$setOnInsert": {
                     "user_email": user_email,
@@ -89,7 +92,7 @@ def grant_subscription(user_email):
         return False
 
 def check_subscription_status(user_email):
-    """Verifica si un usuario está en la lista de permitidos o tiene una suscripción activa."""
+    """Verifica si un usuario tiene una suscripción activa o está en la lista de permitidos."""
     
     # 1. Verificar si el usuario está en la lista de acceso gratuito
     allowed_users_str = st.secrets.get("ALLOWED_USERS", "")
@@ -98,10 +101,10 @@ def check_subscription_status(user_email):
     if user_email in allowed_users:
         return "active" # Acceso concedido para usuarios en la lista
 
-    # 2. Si no está en la lista, verificar su estado de suscripción en la base de datos
-    # (Esta es la lógica que se ejecutará para el público general)
-    usuario = login_collection.find_one({"user_email": user_email})
-    if usuario and usuario.get("subscription_status") == "active":
+    # 2. Si no está en la lista, verificar su estado en la colección 'suscripciones'
+    # Se busca en la nueva colección
+    suscripcion = suscripciones_collection.find_one({"user_email": user_email})
+    if suscripcion and suscripcion.get("status") == "active":
         return "active"
     
     # 3. Si no cumple ninguna condición, no tiene acceso
