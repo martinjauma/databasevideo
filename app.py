@@ -12,6 +12,9 @@ from page.Longo_Match.xmltocsvjson import run_xml_to_csv_json_page
 
 st.set_page_config(page_title="Data App", layout="wide")
 
+# --- DEBUG: Mostrar query params ---
+st.write(f"Query Params Recibidos: {st.query_params.to_dict()}")
+
 # --- 1. INICIALIZACIÓN DE ESTADOS ---
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "home"
