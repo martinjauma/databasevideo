@@ -34,7 +34,7 @@ def render_user_info():
             st.image(st.user.picture, use_container_width=True)
     with col2:
         st.subheader(st.user.name)
-        st.caption(st.user.email)
+    st.caption(st.user.email)
     st.button("🏃‍♂️‍➡️ Cerrar sesión", on_click=st.logout)
 
 def _log_login_event(user_email):

@@ -86,7 +86,7 @@ def handle_card_click(page_name):
 def show_main_app():
     # -- Sidebar
     with st.sidebar:
-        st.image("img/logo.png", width=20)
+        st.image("img/logo.png", width=200)
         st.divider()
         # Si no estamos en la home, muestra el botón para volver.
         if st.session_state.current_page != "home":
@@ -102,8 +102,8 @@ def show_main_app():
 
     # -- Contenido Principal
     if st.session_state.current_page == "home":
-        st.title("Bienvenido a Data App")
-        st.markdown("Selecciona una herramienta para comenzar:")
+        st.title("Bienvenido")
+        st.subheader("Selecciona una herramienta para comenzar:")
 
         # CSS para estandarizar el tamaño del contenedor del logo (versión con clase personalizada)
         st.markdown("""
@@ -126,12 +126,12 @@ def show_main_app():
         st.divider()
 
         cards = [
-            {"title": "YouTube DataBase", "logo": "img/youtube_logo.png", "page": "youtube_database", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Descargar Video de YouTube", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Extraer URLs de Canal", "logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Longo Match XML a CSV", "logo": "img/longomatch_logo.png", "page": "longo_match", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Fulcrum Angles", "logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Piston HLS a MP4", "logo": "img/piston_logo.png", "page": "piston_hls", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "YouTube","subtitle": "PlayList de DataBase", "logo": "img/youtube_logo.png", "page": "youtube_database", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "YouTube", "subtitle": "Extraer URLs de Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "LongoMatch","subtitle": "Convertir XML a CSV", "logo": "img/longomatch_logo.png", "page": "longo_match", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "Fulcrum Piston", "subtitle": "Piston HLS a MP4", "logo": "img/piston_logo.png", "page": "piston_hls", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
         ]
 
         # Volvemos a 3 columnas
@@ -140,12 +140,14 @@ def show_main_app():
             with cols[i % 3]:
                 # Usamos un contenedor con borde para cada tarjeta
                 with st.container(border=True):
-                    # Forzamos el tamaño de la imagen directamente en la función
-                    st.image(card["logo"], width=100)
-
-                    st.subheader(card["title"])
-
-                    # Columnas para alinear los botones
+                    # Fila superior con logo y título alineados
+                    top_cols = st.columns([1, 2], vertical_alignment="center")
+                    with top_cols[0]:
+                        st.image(card["logo"], width=80)
+                    with top_cols[1]:
+                        st.subheader(card["title"])
+                    st.text(card["subtitle"])  # Añadimos un subtítulo opcional
+                    # Fila inferior con los botones
                     btn_cols = st.columns(2)
                     with btn_cols[0]:
                         st.button(
