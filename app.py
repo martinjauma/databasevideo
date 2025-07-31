@@ -130,7 +130,7 @@ def show_main_app():
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube", "subtitle": "Extraer URLs de Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "LongoMatch","subtitle": "Convertir XML a CSV", "logo": "img/longomatch_logo.png", "page": "longo_match", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "Fulcrum Angles", "subtitle": "Conv. Composer Standalone a Timeline","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Piston", "subtitle": "Piston HLS a MP4", "logo": "img/piston_logo.png", "page": "piston_hls", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
         ]
 
@@ -146,7 +146,7 @@ def show_main_app():
                         st.image(card["logo"], width=80)
                     with top_cols[1]:
                         st.subheader(card["title"])
-                    st.text(card["subtitle"])  # Añadimos un subtítulo opcional
+                    st.text(card["subtitle"])
                     # Fila inferior con los botones
                     btn_cols = st.columns(2)
                     with btn_cols[0]:
