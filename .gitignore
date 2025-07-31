@@ -16,7 +16,7 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 *.pyc
-
+modules/__init__.py
 # Logs y bases de datos
 *.log
 *.sqlite3
