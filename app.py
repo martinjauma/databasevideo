@@ -1,4 +1,3 @@
-
 import streamlit as st
 import mercadopago
 import time
@@ -17,71 +16,75 @@ st.set_page_config(page_title="Data App", layout="wide")
 # --- 1. INICIALIZACIÓN DE ESTADOS ---
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "home"
+if 'payment_initiated' not in st.session_state:
+    st.session_state.payment_initiated = False
 
-# --- 2. ROUTING INICIAL AL VOLVER DEL PAGO ---
-# Esta lógica se ejecuta solo una vez cuando el usuario vuelve de Mercado Pago.
-if st.query_params.get("payment_return") == "true":
-    # Cambiamos el estado para mostrar la sala de espera
-    st.session_state.current_page = "waiting_for_payment"
-    # Limpiamos los parámetros de la URL para evitar bucles
-    st.query_params.clear()
-    # Forzamos un rerun para que la app se recargue con el nuevo estado y la URL limpia
-    st.rerun()
-
-# --- 3. AUTENTICACIÓN OBLIGATORIA ---
+# --- 2. AUTENTICACIÓN OBLIGATORIA ---
 login_required()
 
-# --- 4. DEFINICIÓN DE PÁGINAS ---
+# --- 3. DEFINICIÓN DE PÁGINAS ---
 
 def show_payment_page():
     st.title("Suscripción Requerida")
-    st.markdown("### Para acceder a esta herramienta, necesitas una suscripción activa.")
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Pagar en Pesos (ARS)")
-        st.markdown("Acceso completo a todas las herramientas.")
-        if st.button("Suscribirse con Mercado Pago", use_container_width=True, type="primary"):
-            sdk = mercadopago.SDK(st.secrets["MERCADOPAGO_ACCESS_TOKEN"])
-            preference_data = {
-                "items": [{"title": "Suscripción Mensual", "quantity": 1, "unit_price": 100, "currency_id": "ARS"}],
-                "back_urls": {"success": "https://dbvideo.streamlit.app/?payment_return=true"},
-                "auto_return": "approved",
-            }
-            preference_response = sdk.preference().create(preference_data)
-            preference = preference_response["response"]
-            st.markdown(f'<meta http-equiv="refresh" content="0; url={preference["init_point"]}">', unsafe_allow_html=True)
-            st.session_state.current_page = "waiting_for_payment"
+
+    # Si el usuario ya fue enviado a Mercado Pago, mostramos la pantalla de verificación.
+    if st.session_state.payment_initiated:
+        st.info("Si ya has completado el pago, haz clic en el botón de abajo para verificar tu suscripción.")
+        
+        if st.button("✅ Ya completé mi pago, verificar ahora", use_container_width=True, type="primary"):
+            with st.spinner("Verificando tu pago, por favor espera..."):
+                # Sondeamos la BD durante 60 segundos
+                for i in range(20):
+                    if check_subscription_status(st.user.email) == "active":
+                        st.success("¡Tu acceso ha sido activado con éxito!")
+                        st.balloons()
+                        time.sleep(2)
+                        st.session_state.current_page = 'home'
+                        st.session_state.payment_initiated = False # Reseteamos el estado
+                        st.rerun()
+                        return
+                    time.sleep(3)
+            
+            # Si el bucle termina sin éxito
+            st.error("Aún no hemos recibido la confirmación de tu pago.")
+            st.warning("A veces puede tardar uno o dos minutos. Por favor, inténtalo de nuevo en un momento.")
+
+        st.divider()
+        if st.button("Volver a intentar el pago"):
+            st.session_state.payment_initiated = False
             st.rerun()
-    with col2:
-        st.subheader("Pagar en Dólares (USD)")
-        st.markdown("Acceso completo a todas las herramientas.")
-        st.button("Suscribirse con Stripe", disabled=True, use_container_width=True)
 
-def show_waiting_room():
-    st.title("Verificando tu pago...")
-    st.subheader("Por favor, espera un momento mientras confirmamos tu suscripción.")
-    
-    placeholder = st.empty()
-    
-    for i in range(20):
-        if check_subscription_status(st.user.email) == "active":
-            placeholder.success("¡Tu acceso ha sido activado con éxito!")
-            st.balloons()
-            time.sleep(2)
-            st.session_state.current_page = 'home'
-            st.rerun()
-            return
+    # Si el usuario no ha iniciado el pago, mostramos las opciones.
+    else:
+        st.markdown("### Para acceder a esta herramienta, necesitas una suscripción activa.")
+        st.markdown("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Pagar en Pesos (ARS)")
+            st.markdown("Acceso completo a todas las herramientas.")
+            
+            # Mensaje de advertencia antes de redirigir
+            st.info("Serás redirigido a Mercado Pago. Una vez que termines, por favor, vuelve a esta página para verificar tu compra.")
 
-        placeholder.progress((i + 1) * 5, text=f"Verificando... (Intento {i+1}/20)")
-        time.sleep(3)
-
-    placeholder.error("No pudimos confirmar tu pago automáticamente.")
-    st.warning("Si ya has pagado, tu suscripción puede tardar unos minutos en activarse.")
-    st.info("Por favor, intenta refrescar la página en un momento o contacta a soporte si el problema persiste.")
-    if st.button("Volver al Inicio"):
-        st.session_state.current_page = 'home'
-        st.rerun()
+            if st.button("Suscribirse con Mercado Pago", use_container_width=True, type="primary"):
+                st.session_state.payment_initiated = True
+                sdk = mercadopago.SDK(st.secrets["MERCADOPAGO_ACCESS_TOKEN"])
+                preference_data = {
+                    "items": [{"title": "Suscripción Mensual", "quantity": 1, "unit_price": 100, "currency_id": "ARS"}],
+                    # Ya no dependemos de la URL de retorno, pero la dejamos por si acaso.
+                    "back_urls": {"success": "https://dbvideo.streamlit.app/"},
+                    "auto_return": "approved",
+                }
+                preference_response = sdk.preference().create(preference_data)
+                preference = preference_response["response"]
+                st.markdown(f'<meta http-equiv="refresh" content="0; url={preference["init_point"]}">', unsafe_allow_html=True)
+                # Forzamos un rerun para que la interfaz se actualice al estado de "verificación"
+                time.sleep(1) # Pequeña pausa para asegurar que la redirección se inicie
+                st.rerun()
+        with col2:
+            st.subheader("Pagar en Dólares (USD)")
+            st.markdown("Acceso completo a todas las herramientas.")
+            st.button("Suscribirse con Stripe", disabled=True, use_container_width=True)
 
 def handle_card_click(page_name):
     is_admin = st.user.email in st.secrets.get("ADMINS", [])
@@ -92,16 +95,17 @@ def handle_card_click(page_name):
     else:
         st.session_state.current_page = "payment"
 
-# --- 5. PÁGINA PRINCIPAL Y ROUTER ---
+# --- 4. PÁGINA PRINCIPAL Y ROUTER ---
 def show_main_app():
     with st.sidebar:
         st.image("img/logo.png", width=200)
         st.divider()
-        if st.session_state.current_page not in ["home", "waiting_for_payment"]:
+        if st.session_state.current_page != "home":
             if st.button("⬅️ Volver al Inicio", use_container_width=True):
                 st.session_state.current_page = "home"
+                st.session_state.payment_initiated = False # Reseteamos por si acaso
                 st.rerun()
-        elif st.session_state.current_page == "home":
+        else:
             st.button("🏠 INICIO", disabled=True, use_container_width=True)
         st.divider()
         render_user_info()
@@ -162,8 +166,6 @@ def show_main_app():
                         )
     elif st.session_state.current_page == "payment":
         show_payment_page()
-    elif st.session_state.current_page == "waiting_for_payment":
-        show_waiting_room()
     elif st.session_state.current_page == "youtube_database":
         run_data_base_page()
     elif st.session_state.current_page == "youtube_links":
@@ -177,5 +179,5 @@ def show_main_app():
     elif st.session_state.current_page == "piston_hls":
         run_piston_page()
 
-# --- 6. EJECUCIÓN PRINCIPAL ---
+# --- 5. EJECUCIÓN PRINCIPAL ---
 show_main_app()
