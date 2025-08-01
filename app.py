@@ -63,10 +63,16 @@ def show_payment_page():
             st.subheader("Pagar en Pesos (ARS)")
             st.markdown("Acceso completo a todas las herramientas.")
             
-            # Mensaje de advertencia antes de redirigir
-            st.info("Serás redirigido a Mercado Pago. Una vez que termines, por favor, vuelve a esta página para verificar tu compra.")
+            # Mensaje de advertencia ANTES de redirigir
+            with st.container(border=True):
+                st.warning("⚠️ ¡Paso Final Importante!")
+                st.markdown("""
+                1.  Al hacer clic en 'Suscribirse', irás a la página segura de Mercado Pago.
+                2.  Después de pagar, la página de Mercado Pago puede mostrar un error o simplemente decir 'listo'. **Esto es normal.**
+                3.  Lo más importante: **Debes volver a esta pestaña.** Aquí aparecerá un botón verde para **verificar tu pago** y activar tu acceso instantáneamente.
+                """)
 
-            if st.button("Suscribirse con Mercado Pago", use_container_width=True, type="primary"):
+            if st.button("Entendido, ir a Pagar con Mercado Pago", use_container_width=True, type="primary"):
                 st.session_state.payment_initiated = True
                 sdk = mercadopago.SDK(st.secrets["MERCADOPAGO_ACCESS_TOKEN"])
                 preference_data = {
