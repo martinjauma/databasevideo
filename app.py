@@ -109,6 +109,22 @@ def show_main_app():
         st.title("Bienvenido")
         st.subheader("Selecciona una herramienta para comenzar:")
 
+        # --- CSS for 3-row, equal-height cards using Flexbox ---
+        st.markdown("""
+        <style>
+        .card-wrapper {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card-buttons {
+            margin-top: 1rem; /* Adds some space above the buttons */
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # --- Tarjetas Gratuitas ---
         st.subheader("🛠️ Herramientas Gratuitas")
         free_cards = [
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
@@ -118,21 +134,31 @@ def show_main_app():
         cols_free = st.columns(3)
         for i, card in enumerate(free_cards):
             with cols_free[i % 3]:
-                with st.container(height=250, border=True):
+                with st.container(height=310, border=True):
+                    st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
+                    # Rows 1 & 2: Content
+                    st.markdown('<div>', unsafe_allow_html=True)
                     top_cols = st.columns([1, 2], vertical_alignment="center")
                     with top_cols[0]:
                         st.image(card["logo"], width=80)
                     with top_cols[1]:
                         st.subheader(card["title"])
-                    st.text(card["subtitle"])
+                    st.markdown(card["subtitle"])
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # Row 3: Buttons
+                    st.markdown('<div class="card-buttons">', unsafe_allow_html=True)
                     btn_cols = st.columns(2)
                     with btn_cols[0]:
                         st.button("Abrir", use_container_width=True, key=f"open_free_{card['page']}", on_click=handle_free_card_click, args=(card['page'],))
                     with btn_cols[1]:
                         st.link_button("Tutorial", card["tutorial_url"], use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True) # Close card-wrapper
 
         st.divider()
 
+        # --- Tarjetas de Suscripción ---
         st.subheader("⭐ Herramientas de Suscripción")
         paid_cards = [
             {"title": "YouTube","subtitle": "PlayList de Base de Datos", "logo": "img/youtube_logo.png", "page": "youtube_database", "tutorial_url": "https://www.youtube.com/watch?v=yHZZbqonZ0Q&t=4s"},
@@ -142,18 +168,27 @@ def show_main_app():
         cols_paid = st.columns(3)
         for i, card in enumerate(paid_cards):
             with cols_paid[i % 3]:
-                with st.container(height=250, border=True):
+                with st.container(height=310, border=True):
+                    st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
+                    # Rows 1 & 2: Content
+                    st.markdown('<div>', unsafe_allow_html=True)
                     top_cols = st.columns([1, 2], vertical_alignment="center")
                     with top_cols[0]:
                         st.image(card["logo"], width=80)
                     with top_cols[1]:
                         st.subheader(card["title"])
-                    st.text(card["subtitle"])
+                    st.markdown(card["subtitle"])
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # Row 3: Buttons
+                    st.markdown('<div class="card-buttons">', unsafe_allow_html=True)
                     btn_cols = st.columns(2)
                     with btn_cols[0]:
                         st.button("Abrir", use_container_width=True, key=f"open_paid_{card['page']}", on_click=handle_paid_card_click, args=(card['page'],))
                     with btn_cols[1]:
                         st.link_button("Tutorial", card["tutorial_url"], use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True) # Close card-wrapper
 
     elif st.session_state.current_page == "payment":
         show_payment_page()
