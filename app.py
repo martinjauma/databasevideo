@@ -174,7 +174,7 @@ def show_main_app():
                     st.markdown('<div>', unsafe_allow_html=True)
                     top_cols = st.columns([1, 2], vertical_alignment="center")
                     with top_cols[0]:
-                        st.image(card["logo"], width=80)
+                        st.image(card["logo"],width=80)
                     with top_cols[1]:
                         st.subheader(card["title"])
                     st.markdown(card["subtitle"])
