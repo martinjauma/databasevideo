@@ -23,29 +23,38 @@ try:
     suscripciones_collection = db.suscripciones
     
     sdk = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
+    logger.info("Clientes de MongoDB y Mercado Pago inicializados correctamente.")
 except Exception as e:
-    logger.error(f"Error al inicializar los clientes: {e}")
+    logger.error(f"Error CRÍTICO al inicializar los clientes: {e}", exc_info=True)
     raise
 
 def process_payment(payment_id: str):
     """
     Esta función se ejecuta en segundo plano para procesar el pago.
     """
-    logger.info(f"Procesando pago {payment_id} en segundo plano.")
+    logger.info(f"[BG_TASK] Iniciando procesamiento para el pago ID: {payment_id}")
     try:
+        logger.info(f"[BG_TASK] Obteniendo detalles del pago desde la API de Mercado Pago...")
         payment_info = sdk.payment().get(payment_id)
         payment = payment_info.get("response")
+        logger.info(f"[BG_TASK] Respuesta de la API de MP recibida.")
 
         if not payment:
-            logger.error(f"No se pudo obtener información para el pago ID: {payment_id}")
+            logger.error(f"[BG_TASK] No se pudo obtener información para el pago ID: {payment_id}")
             return
 
-        if payment.get("status") == "approved":
+        payment_status = payment.get("status")
+        logger.info(f"[BG_TASK] El estado del pago es: {payment_status}")
+
+        if payment_status == "approved":
             user_email = payment.get("payer", {}).get("email")
+            logger.info(f"[BG_TASK] Email del pagador: {user_email}")
+
             if not user_email:
-                logger.error(f"Pago {payment_id} aprobado pero sin email del pagador.")
+                logger.error(f"[BG_TASK] Pago {payment_id} aprobado pero sin email del pagador.")
                 return
 
+            logger.info(f"[BG_TASK] Intentando actualizar la base de datos para {user_email}...")
             suscripciones_collection.update_one(
                 {"user_email": user_email},
                 {
@@ -62,12 +71,12 @@ def process_payment(payment_id: str):
                 },
                 upsert=True
             )
-            logger.info(f"Suscripción activada para {user_email} a través del webhook.")
+            logger.info(f"[BG_TASK] ¡ÉXITO! Base de datos actualizada para {user_email}.")
         else:
-            logger.info(f"Pago {payment_id} recibido pero no está aprobado (estado: {payment.get('status')}).")
+            logger.info(f"[BG_TASK] El pago no está aprobado. No se realiza ninguna acción.")
 
     except Exception as e:
-        logger.error(f"Error procesando el pago ID {payment_id} en segundo plano: {e}")
+        logger.error(f"[BG_TASK] EXCEPCIÓN DETALLADA durante el procesamiento del pago: {e}", exc_info=True)
 
 
 @app.post("/webhook/mercadopago")
@@ -76,19 +85,23 @@ async def mercadopago_webhook(request: Request, background_tasks: BackgroundTask
     Endpoint para recibir notificaciones de Webhook de Mercado Pago.
     Responde inmediatamente y procesa el pago en segundo plano.
     """
-    body = await request.json()
-    logger.info(f"Webhook recibido: {body}")
+    try:
+        body = await request.json()
+        logger.info(f"Webhook recibido: {body}")
 
-    if body.get("type") == "payment":
-        payment_id = body.get("data", {}).get("id")
-        if payment_id:
-            # Añade la tarea de procesamiento a la cola de fondo
-            background_tasks.add_task(process_payment, payment_id)
-            logger.info(f"Pago {payment_id} encolado para procesamiento.")
-            # Responde inmediatamente a Mercado Pago
-            return {"status": "notification received"}
+        if body.get("type") == "payment":
+            payment_id = body.get("data", {}).get("id")
+            if payment_id:
+                background_tasks.add_task(process_payment, payment_id)
+                logger.info(f"Pago {payment_id} encolado para procesamiento. Respondiendo 200 OK a Mercado Pago.")
+                return {"status": "notification received"}
+        
+        logger.warning("Notificación ignorada (no es de tipo 'payment' o no tiene ID).")
+        return {"status": "notification ignored"}
 
-    return {"status": "notification ignored"}
+    except Exception as e:
+        logger.error(f"Error en el endpoint principal del webhook antes de procesar: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error interno en el servidor de webhooks.")
 
 @app.get("/")
 def read_root():
