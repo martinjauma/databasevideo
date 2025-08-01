@@ -134,7 +134,7 @@ def show_main_app():
         cols_free = st.columns(3)
         for i, card in enumerate(free_cards):
             with cols_free[i % 3]:
-                with st.container(height=310, border=True):
+                with st.container(height=320, border=True):
                     st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
                     # Rows 1 & 2: Content
                     st.markdown('<div>', unsafe_allow_html=True)
@@ -168,7 +168,7 @@ def show_main_app():
         cols_paid = st.columns(3)
         for i, card in enumerate(paid_cards):
             with cols_paid[i % 3]:
-                with st.container(height=310, border=True):
+                with st.container(height=320, border=True):
                     st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
                     # Rows 1 & 2: Content
                     st.markdown('<div>', unsafe_allow_html=True)
