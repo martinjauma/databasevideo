@@ -1,3 +1,4 @@
+
 import streamlit as st
 import mercadopago
 import time
@@ -13,22 +14,24 @@ from page.Longo_Match.xmltocsvjson import run_xml_to_csv_json_page
 
 st.set_page_config(page_title="Data App", layout="wide")
 
-# --- 1. INICIALIZACIÓN DE ESTADOS Y ROUTING INICIAL ---
+# --- 1. INICIALIZACIÓN DE ESTADOS ---
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "home"
 
-# Comprobar si el usuario vuelve de un pago
-query_params = st.query_params
-if query_params.get("payment_return") == "true":
-    # Si es así, lo mandamos a la sala de espera
+# --- 2. ROUTING INICIAL AL VOLVER DEL PAGO ---
+# Esta lógica se ejecuta solo una vez cuando el usuario vuelve de Mercado Pago.
+if st.query_params.get("payment_return") == "true":
+    # Cambiamos el estado para mostrar la sala de espera
     st.session_state.current_page = "waiting_for_payment"
-    # Limpiamos el query param para evitar bucles si el usuario refresca
+    # Limpiamos los parámetros de la URL para evitar bucles
     st.query_params.clear()
+    # Forzamos un rerun para que la app se recargue con el nuevo estado y la URL limpia
+    st.rerun()
 
-# --- 2. AUTENTICACIÓN OBLIGATORIA ---
+# --- 3. AUTENTICACIÓN OBLIGATORIA ---
 login_required()
 
-# --- 3. DEFINICIÓN DE PÁGINAS ---
+# --- 4. DEFINICIÓN DE PÁGINAS ---
 
 def show_payment_page():
     st.title("Suscripción Requerida")
@@ -42,7 +45,6 @@ def show_payment_page():
             sdk = mercadopago.SDK(st.secrets["MERCADOPAGO_ACCESS_TOKEN"])
             preference_data = {
                 "items": [{"title": "Suscripción Mensual", "quantity": 1, "unit_price": 100, "currency_id": "ARS"}],
-                # URL a la que volverá el usuario. Le añadimos un query param.
                 "back_urls": {"success": "https://dbvideo.streamlit.app/?payment_return=true"},
                 "auto_return": "approved",
             }
@@ -60,28 +62,21 @@ def show_waiting_room():
     st.title("Verificando tu pago...")
     st.subheader("Por favor, espera un momento mientras confirmamos tu suscripción.")
     
-    progress_text = "Buscando la confirmación de tu pago en la base de datos..."
-    my_bar = st.progress(0, text=progress_text)
+    placeholder = st.empty()
     
-    # Sondeamos la BD durante 60 segundos (20 intentos de 3 segundos)
     for i in range(20):
-        is_subscribed = check_subscription_status(st.user.email) == "active"
-        
-        if is_subscribed:
-            my_bar.progress(100, text="¡Suscripción Activada!")
-            st.success("¡Tu acceso ha sido activado con éxito!")
+        if check_subscription_status(st.user.email) == "active":
+            placeholder.success("¡Tu acceso ha sido activado con éxito!")
             st.balloons()
-            time.sleep(2) # Pausa para que el usuario vea el mensaje
+            time.sleep(2)
             st.session_state.current_page = 'home'
             st.rerun()
             return
 
-        progress_value = (i + 1) * 5
-        my_bar.progress(progress_value, text=f"Verificando... (Intento {i+1}/20)")
+        placeholder.progress((i + 1) * 5, text=f"Verificando... (Intento {i+1}/20)")
         time.sleep(3)
 
-    # Si el bucle termina sin éxito
-    st.error("No pudimos confirmar tu pago automáticamente.")
+    placeholder.error("No pudimos confirmar tu pago automáticamente.")
     st.warning("Si ya has pagado, tu suscripción puede tardar unos minutos en activarse.")
     st.info("Por favor, intenta refrescar la página en un momento o contacta a soporte si el problema persiste.")
     if st.button("Volver al Inicio"):
@@ -97,7 +92,7 @@ def handle_card_click(page_name):
     else:
         st.session_state.current_page = "payment"
 
-# --- 4. PÁGINA PRINCIPAL Y ROUTER ---
+# --- 5. PÁGINA PRINCIPAL Y ROUTER ---
 def show_main_app():
     with st.sidebar:
         st.image("img/logo.png", width=200)
@@ -182,5 +177,5 @@ def show_main_app():
     elif st.session_state.current_page == "piston_hls":
         run_piston_page()
 
-# --- 5. EJECUCIÓN PRINCIPAL ---
+# --- 6. EJECUCIÓN PRINCIPAL ---
 show_main_app()
