@@ -115,7 +115,7 @@ def show_main_app():
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
-                height: 100%;
+                height: 80%;
             }
         </style>
         """, unsafe_allow_html=True)
@@ -171,7 +171,7 @@ def show_main_app():
                     # Fila 1: Logo + Título
                     row1 = st.columns([1, 2], vertical_alignment="center")
                     with row1[0]:
-                        st.image(card["logo"], width=40)
+                        st.image(card["logo"], width=60)
                     with row1[1]:
                         st.subheader(card["title"])
 
