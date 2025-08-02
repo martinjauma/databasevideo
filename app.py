@@ -10,6 +10,7 @@ from page.YouTube.Channel_YouTube import run_channel_youtube_page
 from page.Fulcrum.Piston.piston import run_piston_page
 from page.Fulcrum.Angles.composerToTimelineJson import run_composer_to_timeline_page
 from page.Longo_Match.xmltocsvjson import run_xml_to_csv_json_page
+from page.YouTube.Playlist_YouTube import run_playlist_youtube_page
 
 st.set_page_config(page_title="Data App", layout="wide")
 
@@ -114,11 +115,12 @@ def show_main_app():
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube", "subtitle": "Extraer URLs de un Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "Playlist YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
         ]
         
         cols_free = st.columns(3)
         for i, card in enumerate(free_cards):
-            with cols_free[i]:
+            with cols_free[i % 3]:
                 with st.container(border=True):
                     # Fila 1: Logo + Título
                     row1 = st.columns([1, 2], vertical_alignment="center")
@@ -152,7 +154,7 @@ def show_main_app():
         
         cols_paid = st.columns(3)
         for i, card in enumerate(paid_cards):
-            with cols_paid[i]:
+            with cols_paid[i % 3]:
                 with st.container(border=True):
                     # Fila 1: Logo + Título
                     row1 = st.columns([1, 2], vertical_alignment="center")
@@ -189,6 +191,8 @@ def show_main_app():
         run_composer_to_timeline_page(st.user.name)
     elif st.session_state.current_page == "piston_hls":
         run_piston_page()
+    elif st.session_state.current_page == "playlist_youtube":
+        run_playlist_youtube_page()
 
 # --- 5. EJECUCIÓN PRINCIPAL ---
 show_main_app()
