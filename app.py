@@ -109,12 +109,23 @@ def show_main_app():
         st.title("Bienvenido")
         st.subheader("Selecciona una herramienta para comenzar:")
 
+        st.markdown("""
+        <style>
+            .card-container {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                height: 100%;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
         # --- Tarjetas Gratuitas ---
         st.subheader("🛠️ Herramientas Gratuitas")
         free_cards = [
             {"title": "YouTube", "subtitle": "Extraer URLs de un Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Playlist YouTube", "subtitle": "Playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "Playlist YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
 
         ]
@@ -123,6 +134,7 @@ def show_main_app():
         for i, card in enumerate(free_cards):
             with cols_free[i % 3]:
                 with st.container(border=True):
+                    st.markdown('<div class="card-container">', unsafe_allow_html=True)
                     # Fila 1: Logo + Título
                     row1 = st.columns([1, 2], vertical_alignment="center")
                     with row1[0]:
@@ -130,11 +142,8 @@ def show_main_app():
                     with row1[1]:
                         st.subheader(card["title"])
 
-                    # Fila 2: Subtítulo (con altura fija para alinear tarjetas)
-                    st.markdown(
-                        f'<div style="height: 3.6em; line-height: 1.2em; overflow: hidden;">{card["subtitle"]}</div>',
-                        unsafe_allow_html=True,
-                    )
+                    # Fila 2: Subtítulo
+                    st.markdown(card["subtitle"])
                     
                     # Fila 3: Botones
                     row3 = st.columns(2)
@@ -142,6 +151,7 @@ def show_main_app():
                         st.button("Abrir", use_container_width=True, key=f"open_free_{card['page']}", on_click=handle_free_card_click, args=(card['page'],))
                     with row3[1]:
                         st.link_button("Tutorial", card["tutorial_url"], use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         st.divider()
 
@@ -157,18 +167,16 @@ def show_main_app():
         for i, card in enumerate(paid_cards):
             with cols_paid[i % 3]:
                 with st.container(border=True):
+                    st.markdown('<div class="card-container">', unsafe_allow_html=True)
                     # Fila 1: Logo + Título
                     row1 = st.columns([1, 2], vertical_alignment="center")
                     with row1[0]:
-                        st.image(card["logo"], width=60)
+                        st.image(card["logo"], width=40)
                     with row1[1]:
                         st.subheader(card["title"])
 
-                    # Fila 2: Subtítulo (con altura fija para alinear tarjetas)
-                    st.markdown(
-                        f'<div style="height: 3.6em; line-height: 1.2em; overflow: hidden;">{card["subtitle"]}</div>',
-                        unsafe_allow_html=True,
-                    )
+                    # Fila 2: Subtítulo
+                    st.markdown(card["subtitle"])
 
                     # Fila 3: Botones
                     row3 = st.columns(2)
@@ -176,6 +184,7 @@ def show_main_app():
                         st.button("Abrir", use_container_width=True, key=f"open_paid_{card['page']}", on_click=handle_paid_card_click, args=(card['page'],))
                     with row3[1]:
                         st.link_button("Tutorial", card["tutorial_url"], use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
 
     elif st.session_state.current_page == "payment":
