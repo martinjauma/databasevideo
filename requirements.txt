@@ -9,3 +9,4 @@ pytube
 yt-dlp
 mercadopago
 reportlab
+streamlit-extras

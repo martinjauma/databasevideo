@@ -1,4 +1,3 @@
-
 import streamlit as st
 import mercadopago
 import time
@@ -109,21 +108,6 @@ def show_main_app():
         st.title("Bienvenido")
         st.subheader("Selecciona una herramienta para comenzar:")
 
-        # --- CSS for 3-row, equal-height cards using Flexbox ---
-        st.markdown("""
-        <style>
-        .card-wrapper {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .card-buttons {
-            margin-top: 1rem; /* Adds some space above the buttons */
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
         # --- Tarjetas Gratuitas ---
         st.subheader("🛠️ Herramientas Gratuitas")
         free_cards = [
@@ -131,30 +115,30 @@ def show_main_app():
             {"title": "YouTube", "subtitle": "Extraer URLs de un Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
         ]
+        
         cols_free = st.columns(3)
         for i, card in enumerate(free_cards):
-            with cols_free[i % 3]:
-                with st.container(height=320, border=True):
-                    st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
-                    # Rows 1 & 2: Content
-                    st.markdown('<div>', unsafe_allow_html=True)
-                    top_cols = st.columns([1, 2], vertical_alignment="center")
-                    with top_cols[0]:
-                        st.image(card["logo"], width=80)
-                    with top_cols[1]:
+            with cols_free[i]:
+                with st.container(border=True):
+                    # Fila 1: Logo + Título
+                    row1 = st.columns([1, 2], vertical_alignment="center")
+                    with row1[0]:
+                        st.image(card["logo"], width=60)
+                    with row1[1]:
                         st.subheader(card["title"])
-                    st.markdown(card["subtitle"])
-                    st.markdown('</div>', unsafe_allow_html=True)
 
-                    # Row 3: Buttons
-                    st.markdown('<div class="card-buttons">', unsafe_allow_html=True)
-                    btn_cols = st.columns(2)
-                    with btn_cols[0]:
+                    # Fila 2: Subtítulo (con altura fija para alinear tarjetas)
+                    st.markdown(
+                        f'<div style="height: 3.6em; line-height: 1.2em; overflow: hidden;">{card["subtitle"]}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    
+                    # Fila 3: Botones
+                    row3 = st.columns(2)
+                    with row3[0]:
                         st.button("Abrir", use_container_width=True, key=f"open_free_{card['page']}", on_click=handle_free_card_click, args=(card['page'],))
-                    with btn_cols[1]:
+                    with row3[1]:
                         st.link_button("Tutorial", card["tutorial_url"], use_container_width=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True) # Close card-wrapper
 
         st.divider()
 
@@ -162,33 +146,34 @@ def show_main_app():
         st.subheader("⭐ Herramientas de Suscripción")
         paid_cards = [
             {"title": "YouTube","subtitle": "PlayList de Base de Datos", "logo": "img/youtube_logo.png", "page": "youtube_database", "tutorial_url": "https://www.youtube.com/watch?v=yHZZbqonZ0Q&t=4s"},
-            {"title": "LongoMatch","subtitle": "Convertir XML a CSV", "logo": "img/longomatch_logo.png", "page": "longo_match", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            # {"title": "LongoMatch","subtitle": "Convertir XML a CSV", "logo": "img/longomatch_logo.png", "page": "longo_match", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Piston", "subtitle": "Piston HLS a MP4", "logo": "img/piston_logo.png", "page": "piston_hls", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
         ]
+        
         cols_paid = st.columns(3)
         for i, card in enumerate(paid_cards):
-            with cols_paid[i % 3]:
-                with st.container(height=320, border=True):
-                    st.markdown('<div class="card-wrapper">', unsafe_allow_html=True)
-                    # Rows 1 & 2: Content
-                    st.markdown('<div>', unsafe_allow_html=True)
-                    top_cols = st.columns([1, 2], vertical_alignment="center")
-                    with top_cols[0]:
-                        st.image(card["logo"],width=80)
-                    with top_cols[1]:
+            with cols_paid[i]:
+                with st.container(border=True):
+                    # Fila 1: Logo + Título
+                    row1 = st.columns([1, 2], vertical_alignment="center")
+                    with row1[0]:
+                        st.image(card["logo"], width=60)
+                    with row1[1]:
                         st.subheader(card["title"])
-                    st.markdown(card["subtitle"])
-                    st.markdown('</div>', unsafe_allow_html=True)
 
-                    # Row 3: Buttons
-                    st.markdown('<div class="card-buttons">', unsafe_allow_html=True)
-                    btn_cols = st.columns(2)
-                    with btn_cols[0]:
+                    # Fila 2: Subtítulo (con altura fija para alinear tarjetas)
+                    st.markdown(
+                        f'<div style="height: 3.6em; line-height: 1.2em; overflow: hidden;">{card["subtitle"]}</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                    # Fila 3: Botones
+                    row3 = st.columns(2)
+                    with row3[0]:
                         st.button("Abrir", use_container_width=True, key=f"open_paid_{card['page']}", on_click=handle_paid_card_click, args=(card['page'],))
-                    with btn_cols[1]:
+                    with row3[1]:
                         st.link_button("Tutorial", card["tutorial_url"], use_container_width=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True) # Close card-wrapper
+
 
     elif st.session_state.current_page == "payment":
         show_payment_page()
