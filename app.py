@@ -125,7 +125,7 @@ def show_main_app():
         free_cards = [
             {"title": "YouTube", "subtitle": "Extraer URLs de un Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "Playlist YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
 
         ]
