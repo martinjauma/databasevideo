@@ -61,7 +61,7 @@ def run_links_youtube_page():
                         "2. **Haga clic derecho** en el botón de descarga de arriba y seleccione **`Guardar enlace como...`**.\n"
                         "3. En la ventana que aparece, **pegue** el nombre que copió en el campo 'Nombre de archivo'."
                     )
-                    st.markdown("---_---")
+                    st.divider()
                     st.markdown("Si el video no se abre en QuickTime, **use VLC**.")
                     st.link_button("Descargar VLC", "https://www.videolan.org/")
                     st.warning("El enlace de descarga es temporal y expirará en unas horas.")
