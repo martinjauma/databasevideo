@@ -66,7 +66,7 @@ def show_payment_page():
                 st.session_state.payment_initiated = True
                 sdk = mercadopago.SDK(st.secrets["MERCADOPAGO_ACCESS_TOKEN"])
                 preference_data = {
-                    "items": [{"title": "Suscripción Mensual", "quantity": 1, "unit_price": 100, "currency_id": "ARS"}],
+                    "items": [{"title": "Suscripción Mensual", "quantity": 1, "unit_price": 1500, "currency_id": "ARS"}],
                     "back_urls": {"success": "https://dbvideo.streamlit.app/"},
                     "auto_return": "approved",
                 }

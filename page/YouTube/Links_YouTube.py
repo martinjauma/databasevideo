@@ -1,91 +1,75 @@
 import streamlit as st
-import os
-import tempfile
-import glob
 import re
 import urllib.parse
 from yt_dlp import YoutubeDL
 
-
-# 🔧 LIMPIAR URL de YouTube (quita parámetros como &t=, ?si=...)
 def limpiar_url_youtube(url):
+    """Limpia la URL de YouTube para quitar parámetros innecesarios."""
     parsed = urllib.parse.urlparse(url)
     query = urllib.parse.parse_qs(parsed.query)
     video_id = query.get("v", [None])[0]
-
     if not video_id and parsed.netloc == "youtu.be":
         video_id = parsed.path.strip("/")
+    return f"https://www.youtube.com/watch?v={video_id}" if video_id else url
 
-    if video_id:
-        return f"https://www.youtube.com/watch?v={video_id}"
-    return url
-
-
-# 📥 FUNCION PARA DESCARGAR USANDO API yt_dlp
-def descargar_video_con_api(video_url, output_path):
+def obtener_info_video(video_url):
+    """Obtiene la información y el enlace de descarga directo del video."""
     ydl_opts = {
-        'format': 'bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=mp4a]/mp4',
-        'merge_output_format': 'mp4',
-        'outtmpl': output_path,
-        'noplaylist': True,
-        'quiet': False,
-        'progress_hooks': [],
+        'format': 'best[ext=mp4]/best',
+        'quiet': True,
     }
-
-    progreso = st.progress(0)
-    texto = st.empty()
-
-    # 🎯 Hook de progreso
-    def progreso_hook(d):
-        if d['status'] == 'downloading':
-            porcentaje = d.get('_percent_str', '0.0%').replace('%', '').strip()
-            try:
-                porcentaje_float = float(porcentaje)
-                progreso.progress(min(int(porcentaje_float), 100))
-                texto.text(f"{int(porcentaje_float)}% descargado")
-            except:
-                pass
-        elif d['status'] == 'finished':
-            progreso.progress(100)
-            texto.text("🎉 Descarga completa, procesando archivo...")
-
-    ydl_opts['progress_hooks'].append(progreso_hook)
-
     with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
+        info = ydl.extract_info(video_url, download=False)
+        return info
 
-
-# 🚀 FUNCION PRINCIPAL DE STREAMLIT
 def run_links_youtube_page():
-    st.title("🎬 Descargar Video de YouTube")
+    """Función principal de la página de Streamlit."""
+    st.title("🎬 Obtener Enlace de Descarga de YouTube")
+    st.warning(
+        "**Atención:** Debido a las limitaciones de memoria de la plataforma para archivos grandes, "
+        "esta herramienta te proporcionará un **enlace de descarga directo**."
+    )
+
     video_url = st.text_input("📎 URL del Video de YouTube", placeholder="https://www.youtube.com/watch?v=...")
 
-    if st.button("📥 Descargar Video") and video_url:
-        video_url = limpiar_url_youtube(video_url)
+    if st.button("🔗 Obtener Enlace de Descarga") and video_url:
+        cleaned_url = limpiar_url_youtube(video_url)
+        try:
+            with st.spinner("Buscando video y enlace de descarga..."):
+                info = obtener_info_video(cleaned_url)
+                download_url = info.get('url')
+                title = info.get('title', 'video')
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_template = os.path.join(tmpdir, "%(title)s.%(ext)s")
+                if download_url:
+                    suggested_filename = f"{title}.mp4"
 
-            try:
-                descargar_video_con_api(video_url, output_template)
+                    st.success("✅ ¡Enlace de descarga listo!")
+                    st.markdown(f"#### Título del Video:")
+                    st.markdown(f"> {title}")
 
-                # Buscar archivo descargado
-                downloaded_files = glob.glob(os.path.join(tmpdir, "*.mp4"))
-                if not downloaded_files:
-                    st.error("❌ No se encontró el archivo descargado.")
-                    return
+                    st.markdown(f"#### Nombre de Archivo Sugerido (Paso 1: Copiar)")
+                    st.code(suggested_filename, language="text")
 
-                file_path = downloaded_files[0]
-                filename = os.path.basename(file_path)
+                    st.divider()
 
-                with open(file_path, "rb") as f:
-                    st.success("✅ Video listo para descargar.")
-                    st.download_button("💾 Guardar Video", data=f, file_name=filename, mime="video/mp4")
+                    st.markdown("#### Enlace de Descarga (Paso 2: Clic Derecho en el Botón)")
+                    st.link_button("Descargar Video (Clic Derecho y Guardar)", download_url)
 
-            except Exception as e:
-                st.error(f"❌ Error durante la descarga: {e}")
+                    st.info(
+                        "**Instrucciones Detalladas:**\n"
+                        "1. **Copie** el `Nombre de Archivo Sugerido` de arriba.\n"
+                        "2. **Haga clic derecho** en el botón de descarga de arriba y seleccione **`Guardar enlace como...`**.\n"
+                        "3. En la ventana que aparece, **pegue** el nombre que copió en el campo 'Nombre de archivo'."
+                    )
+                    st.markdown("---_---")
+                    st.markdown("Si el video no se abre en QuickTime, **use VLC**.")
+                    st.link_button("Descargar VLC", "https://www.videolan.org/")
+                    st.warning("El enlace de descarga es temporal y expirará en unas horas.")
+                else:
+                    st.error("❌ No se pudo obtener un enlace de descarga directo. El video podría estar protegido o no estar disponible en un formato enlazable.")
 
+        except Exception as e:
+            st.error(f"❌ Error al procesar el video: {e}")
 
-# ▶️ EJECUTAR
 if __name__ == "__main__":
     run_links_youtube_page()
