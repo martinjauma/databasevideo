@@ -138,7 +138,7 @@ def show_main_app():
                     # Fila 1: Logo + Título
                     row1 = st.columns([1, 2], vertical_alignment="center")
                     with row1[0]:
-                        st.image(card["logo"], width=60)
+                        st.image(card["logo"], width=45)
                     with row1[1]:
                         st.subheader(card["title"])
 
@@ -171,7 +171,7 @@ def show_main_app():
                     # Fila 1: Logo + Título
                     row1 = st.columns([1, 2], vertical_alignment="center")
                     with row1[0]:
-                        st.image(card["logo"], width=60)
+                        st.image(card["logo"], width=45)
                     with row1[1]:
                         st.subheader(card["title"])
 
