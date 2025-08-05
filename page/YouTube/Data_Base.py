@@ -19,6 +19,8 @@ def obtener_titulo_youtube(url: str) -> str:
 
 def extraer_video_id(url: str) -> Optional[str]:
     """Extrae el ID de un video de YouTube de diferentes formatos de URL."""
+    if not isinstance(url, str):
+        return None
     try:
         if "watch?v=" in url:
             return url.split("watch?v=")[1].split("&")[0]
@@ -117,6 +119,9 @@ def render_sidebar():
                 df["duracion"] = (df["Clip End"] - df["Clip Start"]).round(0)
 
                 if "URL" in df.columns:
+                    if df["URL"].isnull().any():
+                        st.error("❌ SI TU CSV TIENE COLUMNA URL, ESAS COLUMNAS NO PUEDEN TENER NINGUNA CELDA VACÍA.")
+                        return
                     df["video_id"] = df["URL"].str.strip().apply(extraer_video_id)
                     st.success("✅ Se usaron URLs individuales del CSV.")
                 else:
