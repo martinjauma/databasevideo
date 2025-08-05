@@ -130,9 +130,9 @@ def show_main_app():
 
         ]
         
-        cols_free = st.columns(3)
+        cols_free = st.columns(2)
         for i, card in enumerate(free_cards):
-            with cols_free[i % 3]:
+            with cols_free[i % 2]:
                 with st.container(border=True):
                     st.markdown('<div class="card-container">', unsafe_allow_html=True)
                     # Fila 1: Logo + Título
@@ -163,9 +163,9 @@ def show_main_app():
             {"title": "Fulcrum Piston", "subtitle": "Piston HLS a MP4", "logo": "img/piston_logo.png", "page": "piston_hls", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
         ]
         
-        cols_paid = st.columns(3)
+        cols_paid = st.columns(2)
         for i, card in enumerate(paid_cards):
-            with cols_paid[i % 3]:
+            with cols_paid[i % 2]:
                 with st.container(border=True):
                     st.markdown('<div class="card-container">', unsafe_allow_html=True)
                     # Fila 1: Logo + Título
