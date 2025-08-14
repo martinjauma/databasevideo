@@ -46,6 +46,10 @@ def inicializar_estado():
         st.session_state.playlist_active = False
     if "active_clip_details" not in st.session_state:
         st.session_state.active_clip_details = None
+    if "columnas_visibles" not in st.session_state:
+        st.session_state.columnas_visibles = []
+    if "data_context" not in st.session_state:
+        st.session_state.data_context = ""
 
 def render_sidebar():
     with st.sidebar:
@@ -138,6 +142,22 @@ def render_sidebar():
         if eventos:
             df_filtrado = df_filtrado[df_filtrado["Row Name"].isin(eventos)]
         st.session_state.df_filtrado = df_filtrado
+        
+        st.divider()
+        st.header("👁️ Columnas Visibles")
+        all_columns = df.columns.tolist()
+        
+        default_cols_to_check = ["Row Name", "EQUIPO", "RESULTADO", "Clip Start", "duracion"]
+        default_selecolction = [col for col in default_cols_to_check if col in all_columns]
+
+        if 'columnas_visibles' not in st.session_state or not st.session_state.columnas_visibles:
+            st.session_state.columnas_visibles = default_selection
+
+        st.session_state.columnas_visibles = st.multiselect(
+            "Selecciona las columnas a mostrar en la tabla",
+            options=all_columns,
+            default=st.session_state.columnas_visibles
+        )
 
         # Guardar última selección manual sin refrescar el frame
         if not st.session_state.get("playlist_active"):
@@ -161,17 +181,30 @@ def render_aggrid(height=300):
         st.info("No hay clips para mostrar.")
         return
 
-    columnas_visibles = ["Row Name", "EQUIPO", "RESULTADO", "Clip Start", "duracion"]
-    for col in columnas_visibles:
-        if col not in df_display.columns: df_display[col] = "N/A"
-    df_display["Clip Start"] = df_display["Clip Start"].round(0)
-    df_display = df_display[columnas_visibles]
+    columnas_visibles = st.session_state.get('columnas_visibles', [])
+    if not columnas_visibles:
+        st.warning("👈 Desde la barra lateral, selecciona al menos una columna para mostrar en la tabla.")
+        return
 
-    gb = GridOptionsBuilder.from_dataframe(df_display)
+    # Crea un nuevo DataFrame solo con las columnas visibles para evitar errores
+    df_display_final = pd.DataFrame(index=df_display.index)
+    for col in columnas_visibles:
+        if col in df_display.columns:
+            df_display_final[col] = df_display[col]
+        else:
+            df_display_final[col] = "N/A" # Añade la columna con N/A si no existe
+    
+    if "Clip Start" in df_display_final.columns:
+        df_display_final["Clip Start"] = pd.to_numeric(df_display_final["Clip Start"], errors='coerce').round(0)
+
+    # Columnas editables deben estar presentes en el grid para que la edición funcione
+    editable_cols = ["Row Name", "EQUIPO"]
+    
+    gb = GridOptionsBuilder.from_dataframe(df_display_final)
     
     if st.session_state.playlist_active:
         gb.configure_selection("single", use_checkbox=False)
-        gb.configure_grid_options(onRowClicked=JsCode("""
+        gb.configure_grid_options(onRowClicked=JsCode('''
             function(e) {
                 let api = e.api;
                 let rowIndex = e.rowIndex;
@@ -182,25 +215,25 @@ def render_aggrid(height=300):
                     }
                 });
             }
-        """
+        '''
 ))
     else:
         # Configurar edición y selección para la tabla principal
         gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True, pre_selected_rows=st.session_state.clips_seleccionados.index.tolist())
-        gb.configure_column("Row Name", editable=True)
-        gb.configure_column("EQUIPO", editable=True)
+        for col in editable_cols:
+            if col in df_display_final.columns:
+                 gb.configure_column(col, editable=True)
 
 
     grid_options = gb.build()
     grid_response = AgGrid(
-        df_display, 
+        df_display_final, 
         gridOptions=grid_options, 
         update_mode=GridUpdateMode.MODEL_CHANGED, 
         theme="streamlit", 
         height=height, 
         allow_unsafe_jscode=True, 
         key="aggrid_clips",
-        # Evita que la tabla se recargue sola, permitiendo que nuestro código maneje el estado
         reload_data=False 
     )
 
@@ -209,11 +242,18 @@ def render_aggrid(height=300):
             selected_row_data = grid_response["component_value"]
             clips_df = st.session_state.clips_seleccionados
             if not clips_df.empty:
-                match_index = clips_df[
-                    (clips_df["Row Name"] == selected_row_data["Row Name"]) &
-                    (clips_df["EQUIPO"] == selected_row_data["EQUIPO"]) &
-                    (clips_df["Clip Start"].round(0) == selected_row_data["Clip Start"])
-                ].index
+                # Para encontrar el índice correcto, usamos las columnas visibles que definen unívocamente la fila
+                key_cols = [c for c in ["Row Name", "EQUIPO", "Clip Start"] if c in clips_df.columns]
+                
+                match_conditions = True
+                for col in key_cols:
+                    if col == "Clip Start":
+                        match_conditions &= (clips_df[col].round(0) == selected_row_data[col])
+                    else:
+                        match_conditions &= (clips_df[col] == selected_row_data[col])
+
+                match_index = clips_df[match_conditions].index
+                
                 if not match_index.empty:
                     st.session_state.playlist_index = match_index[0]
                     st.rerun()
@@ -221,16 +261,10 @@ def render_aggrid(height=300):
         # Este bloque maneja la tabla principal (no la playlist)
         st.session_state.clips_seleccionados = pd.DataFrame(grid_response.get("selected_rows", []))
         
-        # Procesar actualizaciones de la edición de celdas
         if grid_response['data'] is not None:
             df_updated_view = pd.DataFrame(grid_response['data'])
-
-            # Para evitar errores, solo actualiza si los datos de entrada y salida coinciden en longitud
-            if len(df_updated_view) == len(df_display):
-                # Restaurar el índice original para alinear los datos para las actualizaciones
-                df_updated_view.index = df_display.index
-
-                # Actualizar los dataframes maestro y filtrado en el estado de la sesión
+            if len(df_updated_view) == len(df_display_final):
+                df_updated_view.index = df_display_final.index
                 st.session_state.df_original.update(df_updated_view)
                 st.session_state.df_filtrado.update(df_updated_view)
 
@@ -246,32 +280,70 @@ def render_player_frame(clip_info: pd.Series, autoplay: bool = True):
         height=480
     )
 
-
-
 def get_full_clip_details(clip_row: pd.Series) -> Optional[pd.Series]:
     """Busca los detalles completos de un clip en el DataFrame original."""
     df_original = st.session_state.df_original
     if df_original is None or clip_row.empty: return None
     
-    fila_completa = df_original[
-        (df_original["Row Name"] == clip_row["Row Name"]) &
-        (df_original["EQUIPO"] == clip_row["EQUIPO"]) &
-        (df_original["Clip Start"].round(0) == clip_row["Clip Start"])
-    ]
+    # Usa un conjunto de claves para encontrar la fila, ya que las columnas pueden variar
+    key_cols = [c for c in ["Row Name", "EQUIPO", "Clip Start"] if c in df_original.columns and c in clip_row.index]
+    
+    match_conditions = True
+    for col in key_cols:
+        if col == "Clip Start":
+            match_conditions &= (df_original[col].round(0) == round(clip_row[col], 0))
+        else:
+            match_conditions &= (df_original[col] == clip_row[col])
+
+    fila_completa = df_original[match_conditions]
     return fila_completa.iloc[0] if not fila_completa.empty else None
+
+def render_analysis_section():
+    """Muestra el expander con el gráfico y el área de texto para el contexto."""
+    df_filtrado = st.session_state.get("df_filtrado", pd.DataFrame())
+
+    with st.expander("📊 Gráficos y Contexto del Análisis"):
+        st.subheader("📝 Añadir Contexto al Análisis")
+        st.session_state.data_context = st.text_area(
+            "Añade aquí tus notas o el contexto del análisis (ej: 'Análisis del lineout de NZ vs FRA')",
+            value=st.session_state.get("data_context", ""),
+            height=100,
+            key="data_context_input"
+        )
+
+        st.subheader("📈 Frecuencia de Eventos por Equipo")
+        
+        if df_filtrado.empty:
+            st.info("No hay datos filtrados para generar un gráfico.")
+            return
+
+        required_cols = ['Row Name', 'EQUIPO']
+        if not all(col in df_filtrado.columns for col in required_cols):
+            st.warning(f"Para generar el gráfico, el CSV debe contener las columnas: {', '.join(required_cols)}.")
+            return
+            
+        try:
+            chart_data = df_filtrado.groupby(['EQUIPO', 'Row Name']).size().reset_index(name='counts')
+            pivot_df = chart_data.pivot(index='Row Name', columns='EQUIPO', values='counts').fillna(0)
+            
+            if not pivot_df.empty:
+                st.bar_chart(pivot_df)
+                st.caption("El gráfico muestra el número de veces que ocurre cada 'Evento' (Row Name), agrupado por 'Equipo'.")
+            else:
+                st.info("No hay suficientes datos para generar un gráfico con los filtros actuales.")
+        except Exception as e:
+            st.error(f"Ocurrió un error al generar el gráfico: {e}")
 
 # --- VISTA PRINCIPAL UNIFICADA ---
 
 def render_main_view():
     """Renderiza la vista principal que contiene el reproductor y la tabla."""
 
-    # Determinar si el expander debe estar expandido o no
     expander_expanded = st.session_state.get("show_expander", True)
 
     with st.expander("📁 Lista de Clips", expanded=expander_expanded):
         render_aggrid()
 
-    # Determinar qué clip mostrar
     clip_to_show = None
     autoplay = False
     clips_seleccionados = st.session_state.clips_seleccionados
@@ -284,9 +356,8 @@ def render_main_view():
         else:
             st.success("✅ Playlist finalizada o vacía.")
             st.session_state.playlist_active = False
-            st.session_state.show_expander = True # Expandir al finalizar
+            st.session_state.show_expander = True
 
-    # Renderizar el reproductor y el título si hay un clip
     if clip_to_show is not None:
         resultado_str = f" | {clip_to_show['RESULTADO']}" if 'RESULTADO' in clip_to_show and pd.notna(clip_to_show['RESULTADO']) else ""
         st.markdown(f"### **{clip_to_show['Row Name']}** | {clip_to_show['EQUIPO']}{resultado_str}")
@@ -296,40 +367,33 @@ def render_main_view():
 
     st.divider()
 
-    # --- Botones de control unificados ---
     clips = st.session_state.clips_seleccionados
     is_playlist_empty = clips.empty
 
     is_first_clip = st.session_state.playlist_index == 0
     is_last_clip = st.session_state.playlist_index >= len(clips) - 1
 
-    # Columnas para los botones
     cols = st.columns([1.5, 1, 1, 1, 1.5, 2])
 
-    # Botón Iniciar Playlist
     if cols[0].button("▶️ Iniciar Playlist", disabled=is_playlist_empty or st.session_state.playlist_active):
         st.session_state.playlist_active = True
         st.session_state.playlist_index = 0
-        st.session_state.show_expander = False # Colapsar al iniciar
+        st.session_state.show_expander = False
         st.rerun()
 
-    # Botón Anterior
     if cols[1].button("⏪ Anterior", disabled=not st.session_state.playlist_active or is_first_clip):
         st.session_state.playlist_index -= 1
         st.rerun()
 
-    # Botón Próximo
     if cols[2].button("⏩ Próximo", disabled=not st.session_state.playlist_active or is_last_clip):
         st.session_state.playlist_index += 1
         st.rerun()
 
-    # Botón Detener
     if cols[3].button("🛑 Detener", disabled=not st.session_state.playlist_active):
         st.session_state.playlist_active = False
-        st.session_state.show_expander = True # Expandir al detener
+        st.session_state.show_expander = True
         st.rerun()
 
-    # Botón Descargar CSV
     csv_data = b""
     if not is_playlist_empty:
         full_details_list = [get_full_clip_details(row) for _, row in clips.iterrows()]
@@ -347,27 +411,28 @@ def render_main_view():
         help="Descarga los clips seleccionados en formato CSV."
     )
 
-    # Información del clip actual
     if st.session_state.playlist_active and not is_playlist_empty:
         cols[5].info(f"**Clip {st.session_state.playlist_index + 1} de {len(clips)}**")
 
     st.divider()
+    
+    render_analysis_section()
 
 
 # --- APLICACIÓN PRINCIPAL ---
 
 def run_playlist_youtube_page():
-    st.markdown("""
+    st.markdown('''
         <style>
             .block-container { padding-top: 2rem; }
             .video-container { margin: auto; max-width: 900px; padding-top: 10px; }
         </style>
-    """, unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
 
     st.title("▶️ Playlist de YouTube")
 
     with st.expander("ℹ️ Ayuda y Estructura de Datos"):
-        st.markdown("""
+        st.markdown('''
         ### ¿Qué hace esta página?
         Esta aplicación te permite analizar clips de video a partir de un archivo CSV y una URL de YouTube.
         
@@ -385,7 +450,7 @@ def run_playlist_youtube_page():
         - **`EQUIPO`**: (Texto) El nombre del equipo o la categoría a la que pertenece el clip.
 
         Opcionalmente, puedes incluir una columna `URL` si cada clip proviene de un video de YouTube diferente. Si no se proporciona, se usará la URL general ingresada en la barra lateral.
-        """)
+        ''')
 
         sample_csv_data = '''"Row Name","Clip Start","Clip End","EQUIPO","URL"
 "Try Jugador A",10,25,"Equipo Rojo","ESTA COLUMNA ES OPCIONAL!, si este campo no se le proporciona un link de YouTube, se usará la URL de YouTube ingresada en la barra lateral para todos los clips."

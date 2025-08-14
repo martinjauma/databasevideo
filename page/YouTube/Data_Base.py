@@ -48,6 +48,13 @@ def inicializar_estado():
         st.session_state.playlist_active = False
     if "active_clip_details" not in st.session_state:
         st.session_state.active_clip_details = None
+    if "columnas_visibles" not in st.session_state:
+        st.session_state.columnas_visibles = []
+    if "data_context" not in st.session_state:
+        st.session_state.data_context = ""
+    if "new_file_loaded" not in st.session_state:
+        st.session_state.new_file_loaded = False
+
 
 def render_sidebar():
     with st.sidebar:
@@ -61,67 +68,37 @@ def render_sidebar():
                 df = pd.read_csv(uploaded_file, sep=None, engine="python")
                 
                 # --- Lógica de mapeo de columnas flexible y insensible a mayúsculas ---
-                
-                # 1. Normalizar columnas del CSV (quitar espacios)
                 original_cols = {col.strip(): col for col in df.columns}
                 df.rename(columns={v: k for k, v in original_cols.items()}, inplace=True)
-                
-                # 2. Crear un mapa de columnas en minúsculas para la búsqueda
                 lower_case_map = {col.lower(): col for col in df.columns}
-
-                # 3. Definir los mapeos estándar -> posibles variantes (en minúsculas)
                 column_mapping = {
                     'Row Name': ['row name', 'code'],
                     'Clip Start': ['clip start', 'start'],
-                    'Clip End': ['clip end', 'stop', 'end'], # 'end' añadido
-                    'EQUIPO': ['equipo']
+                    'Clip End': ['clip end', 'stop', 'end'],
+                    'EQUIPO': ['equipo'],
+                    'JUGADOR': ['jugador', 'player'],
+                    'RESULTADO': ['resultado', 'result'],
+                    'FORM': ['form', 'formacion']
                 }
-
                 rename_final = {}
-                missing_columns = []
-
-                # 4. Encontrar las columnas y preparar el renombrado
                 for standard_name, possible_names in column_mapping.items():
-                    found = False
                     for name in possible_names:
                         if name in lower_case_map:
-                            original_name = lower_case_map[name]
-                            rename_final[original_name] = standard_name
-                            found = True
+                            rename_final[lower_case_map[name]] = standard_name
                             break
-                    if not found:
-                        missing_columns.append(standard_name)
-                
-                # 5. Validar si falta alguna columna obligatoria
-                required_columns = ['Row Name', 'Clip Start', 'Clip End']
-                missing_required = [col for col in required_columns if col in missing_columns]
-
-                if missing_required:
-                    st.error(f"❌ Faltan columnas obligatorias. Asegúrate de que tu CSV contenga: {', '.join(missing_required)}")
-                    return
-
-                # 6. Aplicar el renombrado para las columnas encontradas
                 df.rename(columns=rename_final, inplace=True)
 
-                # 7. Manejar la columna opcional 'EQUIPO'
+                # --- Procesamiento de datos ---
                 if 'EQUIPO' not in df.columns:
-                    df['EQUIPO'] = 'N/A' # Añadir valor por defecto
-                    st.warning("⚠️ Columna 'EQUIPO' no encontrada. Se añadió un valor por defecto ('N/A') que puedes editar en la tabla.")
-
-                # Rellenar valores nulos en EQUIPO por si el CSV los tuviera
+                    df['EQUIPO'] = 'N/A'
                 df['EQUIPO'].fillna('N/A', inplace=True)
-
-                # --- Fin de la lógica de mapeo ---
 
                 df["Clip Start"] = pd.to_numeric(df["Clip Start"], errors='coerce')
                 df["Clip End"] = pd.to_numeric(df["Clip End"], errors='coerce')
                 df.dropna(subset=["Clip Start", "Clip End"], inplace=True)
                 df["duracion"] = (df["Clip End"] - df["Clip Start"]).round(0)
 
-                if "URL" in df.columns:
-                    if df["URL"].isnull().any():
-                        st.error("❌ SI TU CSV TIENE COLUMNA URL, ESAS COLUMNAS NO PUEDEN TENER NINGUNA CELDA VACÍA.")
-                        return
+                if "URL" in df.columns and df["URL"].notna().any():
                     df["video_id"] = df["URL"].str.strip().apply(extraer_video_id)
                     st.success("✅ Se usaron URLs individuales del CSV.")
                 else:
@@ -130,7 +107,10 @@ def render_sidebar():
                     st.success("✅ Se usó la URL general de YouTube.")
 
                 st.session_state.df_original = df
+                st.session_state.new_file_loaded = True
+                st.session_state.dynamic_filters = {} # Reinicia los filtros para el nuevo archivo
                 st.success("✅ CSV cargado.")
+
             except Exception as e:
                 st.error(f"❌ Error al procesar el CSV: {e}")
                 return
@@ -138,229 +118,264 @@ def render_sidebar():
         if st.session_state.df_original is None:
             return
 
-        st.header("📊 Filtros")
+        # --- Filtros Dinámicos ---
+        st.header("📊 Filtros Dinámicos")
         df = st.session_state.df_original
-        equipos = st.multiselect("Equipos", options=df["EQUIPO"].unique(), default=df["EQUIPO"].unique())
-        eventos = st.multiselect("Eventos", options=df["Row Name"].unique())
+        
+        if 'dynamic_filters' not in st.session_state:
+            st.session_state.dynamic_filters = {}
 
-        df_filtrado = df[df["EQUIPO"].isin(equipos)]
-        if eventos:
-            df_filtrado = df_filtrado[df_filtrado["Row Name"].isin(eventos)]
+        with st.expander("Aplicar filtros por columna", expanded=True):
+            for col in sorted(df.columns):
+                # Omitir columnas no filtrables
+                if col in ['video_id', 'URL', 'Clip End']: 
+                    continue
+
+                # Filtro para columnas categóricas (texto con pocas opciones)
+                if df[col].dtype == 'object' and df[col].nunique() > 1 and df[col].nunique() < 50:
+                    options = df[col].dropna().unique().tolist()
+                    try:
+                        options.sort()
+                    except TypeError:
+                        pass 
+                    
+                    default = st.session_state.dynamic_filters.get(col, options)
+                    st.session_state.dynamic_filters[col] = st.multiselect(f"Filtrar {col}", options, default=default)
+                
+                # Filtro para columnas numéricas
+                elif pd.api.types.is_numeric_dtype(df[col].dtype) and df[col].nunique() > 1:
+                    min_val, max_val = float(df[col].min()), float(df[col].max())
+                    default = st.session_state.dynamic_filters.get(col, (min_val, max_val))
+                    st.session_state.dynamic_filters[col] = st.slider(f"Rango {col}", min_val, max_val, value=default)
+
+        # Aplicar filtros guardados en el estado
+        df_filtrado = df.copy()
+        for col, value in st.session_state.get('dynamic_filters', {}).items():
+            if col not in df_filtrado.columns: continue
+            
+            if isinstance(value, list): # Filtro de Multiselect
+                df_filtrado = df_filtrado[df_filtrado[col].isin(value)]
+            elif isinstance(value, tuple): # Filtro de Slider
+                df_filtrado = df_filtrado[df_filtrado[col].between(value[0], value[1])]
+        
         st.session_state.df_filtrado = df_filtrado
 
-        # Guardar última selección manual sin refrescar el frame
-        if not st.session_state.get("playlist_active"):
-            if "last_selected_index" not in st.session_state:
-                st.session_state["last_selected_index"] = None
-            if not st.session_state.get("clips_seleccionados", pd.DataFrame()).empty:
-                last_index = st.session_state.clips_seleccionados.index[-1]
-                st.session_state.last_selected_index = last_index
-            else:
-                st.session_state.last_selected_index = None
+        st.divider()
+        st.header("👁️ Columnas Visibles")
+        all_columns = df.columns.tolist()
 
+        if st.session_state.get('new_file_loaded', False):
+            st.session_state.columnas_visibles = all_columns
+            st.session_state.new_file_loaded = False
 
-def render_aggrid(height=300):
+        st.session_state.columnas_visibles = st.multiselect(
+            "Selecciona columnas a mostrar",
+            options=all_columns,
+            default=st.session_state.get('columnas_visibles', all_columns)
+        )
+
+def render_aggrid(height=400):
     """Muestra la tabla de clips interactiva y maneja la selección y edición."""
-    if st.session_state.playlist_active:
-        df_display = st.session_state.clips_seleccionados.copy()
-    else:
-        df_display = st.session_state.df_filtrado.copy()
+    df_display = st.session_state.df_filtrado.copy()
 
     if df_display.empty:
-        st.info("No hay clips para mostrar.")
+        st.info("No hay clips para mostrar con los filtros actuales.")
         return
 
-    columnas_visibles = ["Row Name", "EQUIPO", "RESULTADO", "Clip Start", "duracion"]
-    for col in columnas_visibles:
-        if col not in df_display.columns: df_display[col] = "N/A"
-    df_display["Clip Start"] = df_display["Clip Start"].round(0)
-    df_display = df_display[columnas_visibles]
+    columnas_visibles = st.session_state.get('columnas_visibles', [])
+    if not columnas_visibles:
+        st.warning("👈 Selecciona al menos una columna para mostrar.")
+        return
 
-    gb = GridOptionsBuilder.from_dataframe(df_display)
+    df_display_final = df_display[columnas_visibles]
     
-    if st.session_state.playlist_active:
-        gb.configure_selection("single", use_checkbox=False)
-        gb.configure_grid_options(onRowClicked=JsCode("""
-            function(e) {
-                let api = e.api;
-                let rowIndex = e.rowIndex;
-                api.forEachNode(function(node) {
-                    if (node.rowIndex === rowIndex) {
-                        let data = node.data;
-                        Streamlit.setComponentValue(data);
-                    }
-                });
-            }
-        """
-))
-    else:
-        # Configurar edición y selección para la tabla principal
-        gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True, pre_selected_rows=st.session_state.clips_seleccionados.index.tolist())
-        gb.configure_column("Row Name", editable=True)
-        gb.configure_column("EQUIPO", editable=True)
-
+    gb = GridOptionsBuilder.from_dataframe(df_display_final)
+    gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True)
+    
+    # Permitir edición en todas las columnas visibles
+    for col in columnas_visibles:
+        gb.configure_column(col, editable=True)
 
     grid_options = gb.build()
     grid_response = AgGrid(
-        df_display, 
+        df_display_final, 
         gridOptions=grid_options, 
         update_mode=GridUpdateMode.MODEL_CHANGED, 
         theme="streamlit", 
-        height=height, 
-        allow_unsafe_jscode=True, 
-        key="aggrid_clips",
-        # Evita que la tabla se recargue sola, permitiendo que nuestro código maneje el estado
-        reload_data=False 
+        height=height,
+        key="aggrid_data_base",
+        reload_data=False
     )
+    
+    st.session_state.clips_seleccionados = pd.DataFrame(grid_response.get("selected_rows", []))
+    
+    if grid_response['data'] is not None:
+        df_updated_view = pd.DataFrame(grid_response['data'])
+        if len(df_updated_view) == len(df_display_final):
+            df_updated_view.index = df_display_final.index
+            st.session_state.df_original.update(df_updated_view)
+            st.session_state.df_filtrado.update(df_updated_view)
 
-    if st.session_state.playlist_active:
-        if grid_response.get("component_value"):
-            selected_row_data = grid_response["component_value"]
-            clips_df = st.session_state.clips_seleccionados
-            if not clips_df.empty:
-                match_index = clips_df[
-                    (clips_df["Row Name"] == selected_row_data["Row Name"]) &
-                    (clips_df["EQUIPO"] == selected_row_data["EQUIPO"]) &
-                    (clips_df["Clip Start"].round(0) == selected_row_data["Clip Start"])
-                ].index
-                if not match_index.empty:
-                    st.session_state.playlist_index = match_index[0]
-                    st.rerun()
-    else:
-        # Este bloque maneja la tabla principal (no la playlist)
-        st.session_state.clips_seleccionados = pd.DataFrame(grid_response.get("selected_rows", []))
-        
-        # Procesar actualizaciones de la edición de celdas
-        if grid_response['data'] is not None:
-            df_updated_view = pd.DataFrame(grid_response['data'])
-
-            # Para evitar errores, solo actualiza si los datos de entrada y salida coinciden en longitud
-            if len(df_updated_view) == len(df_display):
-                # Restaurar el índice original para alinear los datos para las actualizaciones
-                df_updated_view.index = df_display.index
-
-                # Actualizar los dataframes maestro y filtrado en el estado de la sesión
-                st.session_state.df_original.update(df_updated_view)
-                st.session_state.df_filtrado.update(df_updated_view)
 
 def render_player_frame(clip_info: pd.Series, autoplay: bool = True):
     """Muestra el reproductor de video de YouTube para un clip específico."""
-    video_id = clip_info["video_id"]
+    video_id = clip_info.get("video_id")
+    if not video_id:
+        st.warning("No se pudo encontrar el ID del video para este clip.")
+        return
     start_time = int(clip_info["Clip Start"])
     autoplay_param = "1" if autoplay else "0"
     embed_url = f"https://www.youtube.com/embed/{video_id}?start={start_time}&autoplay={autoplay_param}&rel=0"
     
+    # Aumentamos la altura del reproductor para aprovechar mejor la pantalla
+    player_height = 650 # Originalmente 450
+    component_height = player_height + 20 # Espacio adicional para el componente
+
     st.components.v1.html(
-        f'<div class="video-container"><iframe src="{embed_url}" width="100%" height="450" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>',
-        height=480
+        f'<div class="video-container"><iframe src="{embed_url}" width="100%" height="{player_height}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>',
+        height=component_height
     )
 
+# --- SECCIÓN DE GRÁFICOS DINÁMICOS ---
 
+def render_event_frequency_chart(df):
+    if 'Row Name' in df.columns and 'EQUIPO' in df.columns:
+        st.markdown("#### Frecuencia de Eventos por Equipo")
+        try:
+            chart_data = df.groupby(['EQUIPO', 'Row Name']).size().unstack(fill_value=0)
+            st.bar_chart(chart_data)
+            st.caption("Muestra el número de veces que ocurre cada evento, agrupado por equipo.")
+        except Exception as e:
+            st.warning(f"No se pudo generar el gráfico de frecuencia: {e}")
+        st.divider()
 
-def get_full_clip_details(clip_row: pd.Series) -> Optional[pd.Series]:
-    """Busca los detalles completos de un clip en el DataFrame original."""
-    df_original = st.session_state.df_original
-    if df_original is None or clip_row.empty: return None
-    
-    fila_completa = df_original[
-        (df_original["Row Name"] == clip_row["Row Name"]) &
-        (df_original["EQUIPO"] == clip_row["EQUIPO"]) &
-        (df_original["Clip Start"].round(0) == clip_row["Clip Start"])
-    ]
-    return fila_completa.iloc[0] if not fila_completa.empty else None
+def render_result_distribution_chart(df):
+    if 'RESULTADO' in df.columns and 'EQUIPO' in df.columns:
+        st.markdown("#### Distribución de Resultados por Equipo")
+        df_chart = df.dropna(subset=['RESULTADO'])
+        if not df_chart.empty:
+            try:
+                chart_data = df_chart.groupby(['EQUIPO', 'RESULTADO']).size().unstack(fill_value=0)
+                st.bar_chart(chart_data)
+                st.caption("Muestra la cantidad de resultados (ej: GANO, PERDIO) para cada equipo.")
+            except Exception as e:
+                st.warning(f"No se pudo generar el gráfico de resultados: {e}")
+        else:
+            st.info("No hay datos en la columna 'RESULTADO' para graficar.")
+        st.divider()
 
-# --- VISTA PRINCIPAL UNIFICADA ---
+def render_lineout_charts(df):
+    if 'Row Name' in df.columns and df['Row Name'].str.contains('LINEOUT', case=False, na=False).any():
+        lineout_df = df[df['Row Name'].str.contains('LINEOUT', case=False, na=False)].copy()
+        st.markdown("### Análisis de Lineouts")
+
+        if 'FORM' in lineout_df.columns:
+            st.markdown("##### Formaciones de Lineout")
+            form_counts = lineout_df['FORM'].value_counts()
+            if not form_counts.empty:
+                st.bar_chart(form_counts)
+                st.caption("Frecuencia de las formaciones ('FORM') en los lineouts.")
+            else:
+                st.info("No hay datos en 'FORM' para los lineouts.")
+
+        if 'JUGADOR' in lineout_df.columns and 'RESULTADO' in lineout_df.columns:
+            st.markdown("##### Jugadores con más Lineouts Ganados")
+            won_lineouts = lineout_df[lineout_df['RESULTADO'].str.contains('GANO|WIN', case=False, na=False)]
+            if not won_lineouts.empty:
+                player_wins = won_lineouts['JUGADOR'].value_counts()
+                if not player_wins.empty:
+                    st.bar_chart(player_wins)
+                    st.caption("Número de lineouts ganados por jugador.")
+                else:
+                    st.info("No se encontraron lineouts ganados.")
+            else:
+                st.info("No hay datos de lineouts con resultado 'GANO' o 'WIN'.")
+        st.divider()
+
+def render_analysis_section():
+    """Muestra el expander con gráficos dinámicos y contexto."""
+    df_filtrado = st.session_state.get("df_filtrado", pd.DataFrame())
+
+    with st.expander("📊 Gráficos y Contexto del Análisis", expanded=True):
+        st.subheader("📝 Añadir Contexto al Análisis")
+        st.session_state.data_context = st.text_area(
+            "Añade aquí tus notas o el contexto del análisis (ej: 'Análisis del lineout de NZ vs FRA')",
+            value=st.session_state.get("data_context", ""),
+            height=100,
+            key="data_context_input"
+        )
+        st.divider()
+        st.subheader("📈 Gráficos de Análisis")
+
+        if df_filtrado.empty:
+            st.info("Carga y filtra datos para ver los gráficos.")
+            return
+
+        render_event_frequency_chart(df_filtrado)
+        render_result_distribution_chart(df_filtrado)
+        render_lineout_charts(df_filtrado)
+
+# --- VISTA PRINCIPAL ---
 
 def render_main_view():
     """Renderiza la vista principal que contiene el reproductor y la tabla."""
+    
+    st.info("Selecciona clips en la tabla de abajo y usa los botones para crear y reproducir una playlist.")
+    
+    render_aggrid()
 
-    # Determinar si el expander debe estar expandido o no
-    expander_expanded = st.session_state.get("show_expander", True)
+    clips_seleccionados = st.session_state.get("clips_seleccionados", pd.DataFrame())
+    is_playlist_empty = clips_seleccionados.empty
 
-    with st.expander("📁 Lista de Clips", expanded=expander_expanded):
-        render_aggrid()
-
-    # Determinar qué clip mostrar
-    clip_to_show = None
-    autoplay = False
-    clips_seleccionados = st.session_state.clips_seleccionados
-
-    if st.session_state.playlist_active:
-        if not clips_seleccionados.empty and st.session_state.playlist_index < len(clips_seleccionados):
-            clip_info = clips_seleccionados.iloc[st.session_state.playlist_index]
-            clip_to_show = get_full_clip_details(clip_info)
-            autoplay = True
-        else:
-            st.success("✅ Playlist finalizada o vacía.")
+    # --- Lógica de validación para el índice de la playlist ---
+    if st.session_state.get("playlist_active", False):
+        # Si la selección de clips queda vacía, detener la playlist
+        if is_playlist_empty:
             st.session_state.playlist_active = False
-            st.session_state.show_expander = True # Expandir al finalizar
+            st.warning("La playlist se detuvo porque no hay clips seleccionados.")
+            st.rerun()
+        # Si el índice actual está fuera de los límites de la nueva selección, reiniciarlo a 0
+        elif st.session_state.playlist_index >= len(clips_seleccionados):
+            st.session_state.playlist_index = 0
+            st.info("La selección de clips cambió. La playlist continuará desde el inicio de la nueva selección.")
 
-    # Renderizar el reproductor y el título si hay un clip
-    if clip_to_show is not None:
-        resultado_str = f" | {clip_to_show['RESULTADO']}" if 'RESULTADO' in clip_to_show and pd.notna(clip_to_show['RESULTADO']) else ""
-        st.markdown(f"### **{clip_to_show['Row Name']}** | {clip_to_show['EQUIPO']}{resultado_str}")
-        render_player_frame(clip_to_show, autoplay=autoplay)
-    else:
-        st.info("Selecciona uno o más clips de la tabla para comenzar.")
-
-    st.divider()
-
-    # --- Botones de control unificados ---
-    clips = st.session_state.clips_seleccionados
-    is_playlist_empty = clips.empty
-
-    is_first_clip = st.session_state.playlist_index == 0
-    is_last_clip = st.session_state.playlist_index >= len(clips) - 1
-
-    # Columnas para los botones
+    # --- Controles de la Playlist ---
     cols = st.columns([1.5, 1, 1, 1, 1.5, 2])
 
-    # Botón Iniciar Playlist
-    if cols[0].button("▶️ Iniciar Playlist", disabled=is_playlist_empty or st.session_state.playlist_active):
+    if cols[0].button("▶️ Iniciar Playlist", disabled=is_playlist_empty):
         st.session_state.playlist_active = True
         st.session_state.playlist_index = 0
-        st.session_state.show_expander = False # Colapsar al iniciar
         st.rerun()
 
-    # Botón Anterior
-    if cols[1].button("⏪ Anterior", disabled=not st.session_state.playlist_active or is_first_clip):
-        st.session_state.playlist_index -= 1
-        st.rerun()
+    if cols[1].button("⏪ Anterior", disabled=not st.session_state.playlist_active):
+        if st.session_state.playlist_index > 0:
+            st.session_state.playlist_index -= 1
+            st.rerun()
 
-    # Botón Próximo
-    if cols[2].button("⏩ Próximo", disabled=not st.session_state.playlist_active or is_last_clip):
-        st.session_state.playlist_index += 1
-        st.rerun()
+    if cols[2].button("⏩ Próximo", disabled=not st.session_state.playlist_active):
+        if st.session_state.playlist_index < len(clips_seleccionados) - 1:
+            st.session_state.playlist_index += 1
+            st.rerun()
 
-    # Botón Detener
     if cols[3].button("🛑 Detener", disabled=not st.session_state.playlist_active):
         st.session_state.playlist_active = False
-        st.session_state.show_expander = True # Expandir al detener
         st.rerun()
 
-    # Botón Descargar CSV
-    csv_data = b""
-    if not is_playlist_empty:
-        full_details_list = [get_full_clip_details(row) for _, row in clips.iterrows()]
-        full_details_list = [row for row in full_details_list if row is not None]
-        if full_details_list:
-            df_to_download = pd.DataFrame(full_details_list)
-            csv_data = df_to_download.to_csv(index=False).encode('utf-8-sig')
-
-    cols[4].download_button(
-        label="📥 Descargar CSV",
-        data=csv_data,
-        file_name="playlist_seleccionada.csv",
-        mime="text/csv",
-        disabled=is_playlist_empty,
-        help="Descarga los clips seleccionados en formato CSV."
-    )
-
-    # Información del clip actual
     if st.session_state.playlist_active and not is_playlist_empty:
-        cols[5].info(f"**Clip {st.session_state.playlist_index + 1} de {len(clips)}**")
+        cols[5].info(f"**Clip {st.session_state.playlist_index + 1} de {len(clips_seleccionados)}**")
 
+    # --- Reproductor de Video ---
+    if st.session_state.playlist_active and not is_playlist_empty:
+        # El índice ya ha sido validado, por lo que esta línea ahora es segura
+        clip_to_show = clips_seleccionados.iloc[st.session_state.playlist_index]
+        
+        title_cols = [c for c in ["Row Name", "EQUIPO", "JUGADOR", "RESULTADO"] if c in clip_to_show]
+        st.markdown(f"### " + " | ".join([str(clip_to_show[c]) for c in title_cols]))
+        
+        render_player_frame(clip_to_show, autoplay=True)
+    
     st.divider()
+    render_analysis_section()
 
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -373,53 +388,21 @@ def run_data_base_page():
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("🏉 🏀 Base de Datos streaming 🏑 ⚽ 🎾")
+    st.title("📊 Base de Datos y Análisis Interactivo")
 
     with st.expander("ℹ️ Ayuda y Estructura de Datos"):
         st.markdown("""
-        ### ¿Qué hace esta página?
-        Esta aplicación te permite analizar clips de video a partir de un archivo CSV y una URL de YouTube.
-        
-        - **Carga y Visualiza**: Carga un archivo CSV con marcas de tiempo y metadatos de clips. La aplicación los mostrará en una tabla interactiva.
-        - **Filtra y Selecciona**: Puedes filtrar los clips por equipo o evento y seleccionar los que te interesen usando las casillas de verificación.
-        - **Crea una Playlist**: Una vez seleccionados, puedes iniciar una playlist para ver los clips uno tras otro.
-        - **Descarga**: Puedes descargar los datos de los clips que seleccionaste en un nuevo archivo CSV.
-
-        ### Estructura del Archivo CSV
-        Para que la aplicación funcione correctamente, el archivo CSV que subas debe tener una estructura específica y contener las siguientes columnas **obligatorias**:
-
-        - **`Row Name`**: (Texto) El nombre o la descripción del clip/evento (ej: "Try Jugador X", "Defensa Lineout").
-        - **`Clip Start`**: (Numérico) El segundo exacto en el que comienza el clip dentro del video de YouTube.
-        - **`Clip End`**: (Numérico) El segundo exacto en el que termina el clip.
-        - **`EQUIPO`**: (Texto) El nombre del equipo o la categoría a la que pertenece el clip.
-
-        Opcionalmente, puedes incluir una columna `URL` si cada clip proviene de un video de YouTube diferente. Si no se proporciona, se usará la URL general ingresada en la barra lateral.
+        Esta aplicación te permite cargar, visualizar, editar y analizar datos de eventos de video.
+        - **Carga y Edita**: Sube un CSV. Puedes editar los datos directamente en la tabla.
+        - **Filtra y Analiza**: Usa los filtros en la barra lateral para explorar tus datos. Los gráficos se actualizarán dinámicamente.
+        - **Crea una Playlist**: Selecciona filas en la tabla para crear una playlist de video.
         """)
-
-        sample_csv_data = '''"Row Name","Clip Start","Clip End","EQUIPO","URL"
-"Try Jugador A",10,25,"Equipo Rojo","ESTA COLUMNA ES OPCIONAL!, si este campo no se le proporciona un link de YouTube, se usará la URL de YouTube ingresada en la barra lateral para todos los clips."
-"Try Jugador B",30,45,"Equipo Azul","https://www.youtube.com/watch?v=XNaqqZNJUMc"
-"Falta Jugador C",70,80,"Equipo Rojo","https://www.youtube.com/watch?v=XNaqqZNJUMc"
-"Defensa Lineout",50,65,"Equipo Azul"
-"Scrum Ganado",120,130,"Equipo Rojo"
-'''
-        col1, col2 = st.columns([3,1])    
-            
-        with col1:    
-            st.download_button(
-                label="📥 Descargar CSV de Ejemplo con las columnas obligatorias",
-                data=sample_csv_data.encode('utf-8'),
-                file_name="ejemplo_clips.csv",
-                mime="text/csv",
-            )
-        with col2:
-            st.write(" ")
-            st.markdown("[VIDEO TUTORIAL](https://youtu.be/yHZZbqonZ0Q)")
-
+        # ... (código del CSV de ejemplo)
+    
     inicializar_estado()
     render_sidebar()
 
     if st.session_state.df_original is None:
-        st.info("👈 Comienza cargando un archivo CSV y una URL de YouTube en la barra lateral.")
+        st.info("👈 Comienza cargando un archivo CSV en la barra lateral.")
     else:
         render_main_view()
