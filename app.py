@@ -11,6 +11,7 @@ from page.Fulcrum.Piston.piston import run_piston_page
 from page.Fulcrum.Angles.composerToTimelineJson import run_composer_to_timeline_page
 from page.Longo_Match.xmltocsvjson import run_xml_to_csv_json_page
 from page.YouTube.Playlist_YouTube import run_playlist_youtube_page
+from page.DEMO.Data_Base_Demo import run_data_base_demo_page
 
 st.set_page_config(page_title="Data App", layout="wide")
 
@@ -120,6 +121,37 @@ def show_main_app():
         </style>
         """, unsafe_allow_html=True)
 
+        # --- DEMO ---
+        st.subheader("🚀 DEMO")
+        demo_cards = [
+            {"title": "YouTube", "subtitle": "PlayList de Base de Datos (DEMO)", "logo": "img/youtube_logo.png", "page": "youtube_database_demo", "tutorial_url": "https://www.youtube.com/watch?v=yHZZbqonZ0Q&t=4s"},
+        ]
+        
+        cols_demo = st.columns(2)
+        for i, card in enumerate(demo_cards):
+            with cols_demo[i % 2]:
+                with st.container(border=True):
+                    st.markdown('<div class="card-container">', unsafe_allow_html=True)
+                    # Fila 1: Logo + Título
+                    row1 = st.columns([1, 2], vertical_alignment="center")
+                    with row1[0]:
+                        st.image(card["logo"], width=45)
+                    with row1[1]:
+                        st.subheader(card["title"])
+
+                    # Fila 2: Subtítulo
+                    st.markdown(card["subtitle"])
+                    
+                    # Fila 3: Botones
+                    row3 = st.columns(2)
+                    with row3[0]:
+                        st.button("Abrir", use_container_width=True, key=f"open_demo_{card['page']}", on_click=handle_free_card_click, args=(card['page'],))
+                    with row3[1]:
+                        st.link_button("Tutorial", card["tutorial_url"], use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.divider()
+
         # --- Tarjetas Gratuitas ---
         st.subheader("🛠️ Herramientas Gratuitas")
         free_cards = [
@@ -191,6 +223,8 @@ def show_main_app():
         show_payment_page()
     elif st.session_state.current_page == "youtube_database":
         run_data_base_page()
+    elif st.session_state.current_page == "youtube_database_demo":
+        run_data_base_demo_page()
     elif st.session_state.current_page == "youtube_links":
         run_links_youtube_page()
     elif st.session_state.current_page == "youtube_channel":
