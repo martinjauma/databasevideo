@@ -148,7 +148,7 @@ def render_sidebar():
         all_columns = df.columns.tolist()
         
         default_cols_to_check = ["Row Name", "EQUIPO", "RESULTADO", "Clip Start", "duracion"]
-        default_selecolction = [col for col in default_cols_to_check if col in all_columns]
+        default_selection = [col for col in default_cols_to_check if col in all_columns]
 
         if 'columnas_visibles' not in st.session_state or not st.session_state.columnas_visibles:
             st.session_state.columnas_visibles = default_selection
