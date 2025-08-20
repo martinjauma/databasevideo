@@ -12,6 +12,7 @@ from page.Fulcrum.Angles.composerToTimelineJson import run_composer_to_timeline_
 from page.Longo_Match.xmltocsvjson import run_xml_to_csv_json_page
 from page.YouTube.Playlist_YouTube import run_playlist_youtube_page
 from page.DEMO.Data_Base_Demo import run_data_base_demo_page
+from page.Fulcrum.Angles.Angle_Tabla_filter import run_angle_tabla_filter_page
 
 st.set_page_config(page_title="Data App", layout="wide")
 
@@ -159,6 +160,7 @@ def show_main_app():
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "Fulcrum Angles", "subtitle": "Buscar & Rempalzar Tablas de Filtro","logo": "img/angles_logo.png", "page": "fulcrum_angles_tabla_filter", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
 
         ]
         
@@ -231,8 +233,11 @@ def show_main_app():
         run_channel_youtube_page()
     elif st.session_state.current_page == "longo_match":
         run_xml_to_csv_json_page()
+    
     elif st.session_state.current_page == "fulcrum_angles":
         run_composer_to_timeline_page(st.user.name)
+    elif st.session_state.current_page == "fulcrum_angles_tabla_filter":
+        run_angle_tabla_filter_page()
     elif st.session_state.current_page == "piston_hls":
         run_piston_page()
     elif st.session_state.current_page == "playlist_youtube":
