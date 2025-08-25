@@ -17,7 +17,7 @@ def run_download_playlist_page():
                 st.info("Iniciando la descarga... Esto puede tardar un momento.")
                 
                 # Define the download directory
-                download_path = os.path.join(os.path.expanduser("~"), "Downloads", "descarga de Play List")
+                download_path = "downloads"
                 if not os.path.exists(download_path):
                     os.makedirs(download_path)
 
