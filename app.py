@@ -11,6 +11,7 @@ from page.Fulcrum.Piston.piston import run_piston_page
 from page.Fulcrum.Angles.composerToTimelineJson import run_composer_to_timeline_page
 from page.Longo_Match.xmltocsvjson import run_xml_to_csv_json_page
 from page.YouTube.Playlist_YouTube import run_playlist_youtube_page
+from page.YouTube.Download_Playlist import run_download_playlist_page
 from page.DEMO.Data_Base_Demo import run_data_base_demo_page
 from page.Fulcrum.Angles.Angle_Tabla_filter import run_angle_tabla_filter_page
 
@@ -52,7 +53,7 @@ def show_payment_page():
             st.rerun()
     else:
         st.markdown("### Para acceder a esta herramienta, necesitas una suscripción activa.")
-        st.markdown("---")
+        st.markdown("--- ")
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("Pagar en Pesos (ARS)")
@@ -98,12 +99,12 @@ def show_main_app():
         st.image("img/logo.png", width=200)
         st.divider()
         if st.session_state.current_page != "home":
-            if st.button("⬅️ Volver al Inicio", use_container_width=True):
+            if st.button("⬅️ Volver al Inicio", use_container_width=True, key="back_to_home"):
                 st.session_state.current_page = "home"
                 st.session_state.payment_initiated = False
                 st.rerun()
         else:
-            st.button("🏠 INICIO", disabled=True, use_container_width=True)
+            st.button("🏠 INICIO", disabled=True, use_container_width=True, key="home_disabled")
         st.divider()
         render_user_info()
 
@@ -158,6 +159,7 @@ def show_main_app():
         free_cards = [
             {"title": "YouTube", "subtitle": "Extraer URLs de un Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "YouTube", "subtitle": "Descargar Playlist de YouTube", "logo": "img/youtube_logo.png", "page": "youtube_download_playlist", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Buscar & Rempalzar Tablas de Filtro","logo": "img/angles_logo.png", "page": "fulcrum_angles_tabla_filter", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
@@ -242,6 +244,8 @@ def show_main_app():
         run_piston_page()
     elif st.session_state.current_page == "playlist_youtube":
         run_playlist_youtube_page()
+    elif st.session_state.current_page == "youtube_download_playlist":
+        run_download_playlist_page()
 
 
 # --- 5. EJECUCIÓN PRINCIPAL ---
