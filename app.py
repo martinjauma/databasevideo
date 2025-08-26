@@ -171,11 +171,10 @@ def show_main_app():
         free_cards = [
             {"title": "YouTube", "subtitle": "Extraer URLs de un Canal","logo": "img/youtube_logo.png", "page": "youtube_channel", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube","subtitle": "Descargar Video por URL", "logo": "img/youtube_logo.png", "page": "youtube_links", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "YouTube", "subtitle": "Descargar Playlist de YouTube", "logo": "img/youtube_logo.png", "page": "youtube_download_playlist", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Buscar & Rempalzar Tablas de Filtro","logo": "img/angles_logo.png", "page": "fulcrum_angles_tabla_filter", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "SPORTcODE", "subtitle": "SPORTcODE A Angles Json","logo": "img/angles_logo.png", "page": "sportcode_to_json", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "hudl SportsCode", "subtitle": "hudl SportsCode a Angles Json","logo": "img/angles_logo.png", "page": "sportcode_to_json", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
 
         ]
         
@@ -257,8 +256,7 @@ def show_main_app():
         run_piston_page()
     elif st.session_state.current_page == "playlist_youtube":
         run_playlist_youtube_page()
-    elif st.session_state.current_page == "youtube_download_playlist":
-        run_download_playlist_page()
+  
     elif st.session_state.current_page == "sportcode_to_json":
         run_sportcode_to_json_page()
 
