@@ -1,6 +1,15 @@
+
 import streamlit as st
 import mercadopago
 import time
+import subprocess
+import sys
+
+try:
+    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"], check=True)
+except subprocess.CalledProcessError as e:
+    print(f"Error updating yt-dlp: {e}")
+
 from modules.auth_google import login_required, render_user_info, check_subscription_status
 
 # Importar funciones de páginas
@@ -94,19 +103,21 @@ def handle_paid_card_click(page_name):
     else:
         st.session_state.current_page = "payment"
 
+with st.sidebar:
+    render_user_info()
+
 def show_main_app():
     with st.sidebar:
         st.image("img/logo.png", width=200)
         st.divider()
         if st.session_state.current_page != "home":
-            if st.button("⬅️ Volver al Inicio", use_container_width=True, key="back_to_home"):
+            if st.button("⬅️ Volver al Inicio", use_container_width=True, key=f"back_to_home_{st.session_state.current_page}"):
                 st.session_state.current_page = "home"
                 st.session_state.payment_initiated = False
                 st.rerun()
         else:
             st.button("🏠 INICIO", disabled=True, use_container_width=True, key="home_disabled")
         st.divider()
-        render_user_info()
 
     if st.session_state.current_page == "home":
         st.title("Bienvenido")
