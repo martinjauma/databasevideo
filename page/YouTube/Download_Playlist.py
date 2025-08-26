@@ -26,6 +26,7 @@ def run_download_playlist_page():
                 # Construct the yt-dlp command
                 command = [
                     "yt-dlp",
+                    "--verbose",
                     "--ignore-errors",
                     "--force-overwrites",
                     "--rm-cache-dir",
