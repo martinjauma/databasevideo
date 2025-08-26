@@ -104,8 +104,7 @@ def handle_paid_card_click(page_name):
     else:
         st.session_state.current_page = "payment"
 
-with st.sidebar:
-    render_user_info()
+# 
 
 def show_main_app():
     with st.sidebar:
@@ -118,7 +117,6 @@ def show_main_app():
                 st.rerun()
         else:
             st.button("🏠 INICIO", disabled=True, use_container_width=True, key="home_disabled")
-        st.divider()
 
     if st.session_state.current_page == "home":
         st.title("Bienvenido")
@@ -261,5 +259,10 @@ def show_main_app():
         run_sportcode_to_json_page()
 
 
+    
+
 # --- 5. EJECUCIÓN PRINCIPAL ---
 show_main_app()
+with st.sidebar:
+    st.divider()
+    render_user_info()
