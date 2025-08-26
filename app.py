@@ -23,6 +23,7 @@ from page.YouTube.Playlist_YouTube import run_playlist_youtube_page
 from page.YouTube.Download_Playlist import run_download_playlist_page
 from page.DEMO.Data_Base_Demo import run_data_base_demo_page
 from page.Fulcrum.Angles.Angle_Tabla_filter import run_angle_tabla_filter_page
+from page.SPORTCODE.sportcode_to_json import run_sportcode_to_json_page
 
 st.set_page_config(page_title="Data App", layout="wide")
 
@@ -174,6 +175,7 @@ def show_main_app():
             {"title": "YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Buscar & Rempalzar Tablas de Filtro","logo": "img/angles_logo.png", "page": "fulcrum_angles_tabla_filter", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "SPORTcODE", "subtitle": "SPORTcODE A Angles Json","logo": "img/angles_logo.png", "page": "sportcode_to_json", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
 
         ]
         
@@ -257,6 +259,8 @@ def show_main_app():
         run_playlist_youtube_page()
     elif st.session_state.current_page == "youtube_download_playlist":
         run_download_playlist_page()
+    elif st.session_state.current_page == "sportcode_to_json":
+        run_sportcode_to_json_page()
 
 
 # --- 5. EJECUCIÓN PRINCIPAL ---
