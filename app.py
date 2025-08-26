@@ -174,7 +174,7 @@ def show_main_app():
             {"title": "YouTube", "subtitle": "Reproducir una playlist de YouTube", "logo": "img/youtube_logo.png", "page": "playlist_youtube", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Convertir Composer Standalone a TimelineJson","logo": "img/angles_logo.png", "page": "fulcrum_angles", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
             {"title": "Fulcrum Angles", "subtitle": "Buscar & Rempalzar Tablas de Filtro","logo": "img/angles_logo.png", "page": "fulcrum_angles_tabla_filter", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"title": "hudl SportsCode", "subtitle": "hudl SportsCode a Angles Json","logo": "img/angles_logo.png", "page": "sportcode_to_json", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"title": "hudl SportsCode", "subtitle": "hudl SportsCode ➤ Angles Json","logo": "img/angles_logo.png", "page": "sportcode_to_json", "tutorial_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
 
         ]
         
