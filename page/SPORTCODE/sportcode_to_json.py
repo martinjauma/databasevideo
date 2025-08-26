@@ -45,7 +45,8 @@ def run_sportcode_to_json_page():
                         # Agrupar clips por originalGroupName
                         grouped_clips = defaultdict(list)
                         for item in data.get('playlist', {}).get('clips', []):
-                            grouped_clips[item.get('originalGroupName', '')].append(item)
+                            if 'originalGroupName' in item and item['originalGroupName']:
+                                grouped_clips[item['originalGroupName']].append(item)
 
                         # Convertir a la estructura JSON deseada
                         rows = []
