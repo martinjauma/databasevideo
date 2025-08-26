@@ -7,7 +7,7 @@ import json
 from collections import defaultdict
 
 def run_sportcode_to_json_page():
-    st.title("hudl SportsCode a Angles Json")
+    st.title("SPORTcODE A Angles Json")
 
     uploaded_file = st.file_uploader("Subí un archivo .zip", type="zip")
 
@@ -56,11 +56,16 @@ def run_sportcode_to_json_page():
                                 for tag in clip.get('moment', {}).get('tags', []):
                                     qualifiers.append({
                                         "name": tag.get('key', ''),
+                                        "uuid": tag.get('id', ''),
+                                        "time": tag.get('time', 0),
+                                        "color": tag.get('color', ''),
                                         "category": tag.get('value', '')
                                     })
                                 
                                 row_clips.append({
                                     "time_start": clip.get('startTime', 0),
+                                    "uuid": clip.get('id', ''),
+                                    "color": clip.get('color', ''),
                                     "time_end": clip.get('endTime', 0),
                                     "qualifiers": {
                                         "qualifiers_array": qualifiers
