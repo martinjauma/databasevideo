@@ -31,7 +31,7 @@ def run_download_playlist_page():
                     "--force-overwrites",
                     "--rm-cache-dir",
                     "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
-                    "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
+                    "-f", "best",
                     "-o", f"{download_path}/%(playlist_index)s-%(title)s.%(ext)s",
                     playlist_url
                 ]
