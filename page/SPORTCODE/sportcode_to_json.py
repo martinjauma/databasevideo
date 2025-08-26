@@ -7,7 +7,7 @@ import json
 from collections import defaultdict
 
 def run_sportcode_to_json_page():
-    st.title("hudl SportsCode A Angles Json")
+    st.title("hudl SportsCode a Angles Json")
 
     uploaded_file = st.file_uploader("Subí un archivo .zip", type="zip")
 
