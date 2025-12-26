@@ -36,6 +36,11 @@ if 'payment_initiated' not in st.session_state:
 # --- 2. AUTENTICACIÓN OBLIGATORIA ---
 login_required()
 
+# --- DEBUG ---
+st.write("DEBUG: Contenido de st.user")
+st.write(st.user)
+# --- FIN DEBUG ---
+
 # --- 3. DEFINICIÓN DE PÁGINAS ---
 
 def show_payment_page():
