@@ -5,6 +5,10 @@ import time
 import subprocess
 import sys
 
+import streamlit as st
+st.write(st)
+
+
 try:
     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"], check=True)
 except subprocess.CalledProcessError as e:
