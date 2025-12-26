@@ -30,11 +30,12 @@ def render_user_info():
     # st.header("👤 Usuario")
     col1, col2 = st.columns([1, 3])
     with col1:
-        if st.user.picture:
-            st.image(st.user.picture, use_container_width=True)
+        picture = getattr(st.user, 'picture', None)
+        if picture:
+            st.image(picture, use_container_width=True)
     with col2:
-        st.subheader(st.user.name)
-    st.caption(st.user.email)
+        st.subheader(getattr(st.user, 'name', 'Usuario'))
+    st.caption(getattr(st.user, 'email', ''))
     st.button("🏃‍♂️‍➡️ Cerrar sesión", on_click=st.logout)
 
 def _log_login_event(user_email):
